@@ -6,6 +6,7 @@ module('everlooping.deque')
 local dequeT = {}
 dequeT.__index = dequeT
 
+--FIXME when the index goes too large...
 function deque()
   local o = {}
   o._start = 1
@@ -37,4 +38,8 @@ end
 
 function dequeT:length()
   return self._stop - self._start + 1
+end
+
+function dequeT:leftmost()
+  return self[self._start]
 end

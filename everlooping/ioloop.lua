@@ -3,7 +3,9 @@
 local assert = assert
 local setmetatable = setmetatable
 local type = type
+local ipairs = ipairs
 local os = os
+local table = table
 
 local S = require('syscall')
 local t, c = S.t, S.c
@@ -29,6 +31,7 @@ function IOLoop:new(opts)
   o._fds = {}
   o._epoll_fd = assert(S.epoll_create())
   o._stopped = false
+  o._callbacks = {}
 
   self.__index = self
   setmetatable(o, self)
@@ -50,6 +53,10 @@ function IOLoop:remove_handler(fd)
   assert(self._epoll_fd:epoll_ctl('del', fd, 0))
 end
 
+function IOLoop:add_callback(callback)
+  table.insert(self._callbacks, callback)
+end
+
 function IOLoop:start()
   if self._stopped then
     self._stopped = false
@@ -58,6 +65,16 @@ function IOLoop:start()
 
   while not self._stopped do
     local poll_timeout = 3600000
+    local callbacks = self._callbacks
+    self._callbacks = {}
+    for _, callback in ipairs(callbacks) do
+      callback()
+    end
+
+    if #self._callbacks > 0 then
+      poll_timeout = 0
+    end
+
     local events, err = self._epoll_fd:epoll_wait(events, MAX_EVENTS, poll_timeout)
     if events == nil and err ~= 'Interrupted system call' then
       events = {} -- continue to next loop
