@@ -4,12 +4,19 @@ local assert = assert
 local setmetatable = setmetatable
 local type = type
 local ipairs = ipairs
+local error = error
 local os = os
 local table = table
 
 local S = require('syscall')
 local t, c = S.t, S.c
 local ffi = require('ffi')
+
+--debugging stuff
+local _tostring = require('logging').tostring
+local print = function(...)
+  print(_tostring(...))
+end
 
 module('everlooping.ioloop')
 
@@ -76,7 +83,7 @@ function IOLoop:start()
     end
 
     local events, err = self._epoll_fd:epoll_wait(events, MAX_EVENTS, poll_timeout)
-    if events == nil and err ~= 'Interrupted system call' then
+    if events == nil and err.EINTR then
       events = {} -- continue to next loop
     end
 
@@ -100,4 +107,21 @@ function defaultIOLoop()
     singleton = IOLoop:new()
   end
   return singleton
+end
+
+function add_accept_handler(sock, callback, ioloop)
+  ioloop = ioloop or defaultIOLoop()
+  function accept_handler(fd, events)
+    while true do
+      local conn, err = sock:accept()
+      if not conn then
+        if err.EAGAIN then
+          return
+        end
+        error(err)
+      end
+      callback(conn)
+    end
+  end
+  ioloop:add_handler(sock, accept_handler, "in")
 end
