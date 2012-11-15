@@ -43,3 +43,7 @@ end
 function dequeT:leftmost()
   return self[self._start]
 end
+
+function dequeT:at(n)
+  return self[self._start + n - 1]
+end

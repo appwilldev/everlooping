@@ -11,7 +11,11 @@ end
 
 function printReceived(stream, data)
   print(data)
-  stream:close()
+  if string.sub(data, #data, #data) == '\n' then
+    stream:close()
+  else
+    stream:read_until('\n', printReceived)
+  end
 end
 
 function start_read(stream)

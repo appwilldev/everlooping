@@ -6,6 +6,7 @@ local select = select
 local unpack = unpack
 local ipairs = ipairs
 local error = error
+local math = math
 
 local bit = require('bit')
 local S = require('syscall')
@@ -23,7 +24,7 @@ module('everlooping.iostream')
 
 local bufsize = 4096
 local buffer = t.buffer(bufsize)
-local _merge_prefix
+local _merge_prefix, _double_prefix
 
 local IOStreamT = {
   IN  = 0x001,
@@ -65,13 +66,36 @@ function IOStreamT:connect(address, callback)
 end
 
 function IOStreamT:read_bytes(num_bytes, callback)
-  self._read_callback = callback
+  self:_set_read_callback(callback)
   self._read_bytes = num_bytes
-  self:_read_from_buffer()
-  self:_add_io_state(self.IN)
+  self:_try_inline_read()
+end
+
+function IOStreamT:read_until(delimiter, callback)
+  self:_set_read_callback(callback)
+  self._read_delimiter = delimiter
+  self:_try_inline_read()
+end
+
+function IOStreamT:_set_read_callback(callback)
+  if self._read_callback then
+    error('Already reading')
+  elseif self._closed then
+    error('closed')
+  end
+  self._read_callback = callback
+end
+
+function IOStreamT:_try_inline_read()
+  if not self:_read_from_buffer() then
+    self:_add_io_state(self.IN)
+  end
 end
 
 function IOStreamT:write(data, callback)
+  if self._closed then
+    error('closed')
+  end
   self._write_buffer:append(data)
   self._write_callback = callback
   if not self._connecting then
@@ -80,7 +104,13 @@ function IOStreamT:write(data, callback)
 end
 
 function IOStreamT:close()
-  self._sock:close()
+  if not self._closed then
+    self.ioloop:remove_handler(self._sock)
+    self._sock:close()
+    self._write_buffer = nil
+    self._read_buffer = nil
+    self._closed = true
+  end
 end
 
 function IOStreamT:_add_io_state(state)
@@ -167,15 +197,34 @@ function IOStreamT:_handle_write()
 end
 
 function IOStreamT:_read_from_buffer()
-  if self._read_bytes and self._read_buffer_size >= self._read_bytes then
-    local callback = self._read_callback
-    self._read_callback = nil
-    local num_bytes = self._read_bytes
-    self._read_bytes = nil
-    self:_run_callback(callback, self:_consume(num_bytes))
-    return true
+  if self._read_bytes then
+    if self._read_buffer_size >= self._read_bytes then
+      local callback = self._read_callback
+      self._read_callback = nil
+      local num_bytes = self._read_bytes
+      self._read_bytes = nil
+      self:_run_callback(callback, self:_consume(num_bytes))
+      return true
+    end
+  elseif self._read_delimiter then
+    if self._read_buffer:length() > 0 then
+      while true do
+        local loc = string.find(self._read_buffer:at(1), self._read_delimiter, 1, true)
+        if loc then
+          local callback = self._read_callback
+          local delimiter_len = #self._read_delimiter
+          self._read_callback = nil
+          self._read_delimiter = nil
+          self:_run_callback(callback, self:_consume(loc + delimiter_len - 1))
+          return true
+        end
+        if self._read_buffer:length() == 1 then
+          break
+        end
+        _double_prefix(self._read_buffer)
+      end
+    end
   end
-  --TODO read a line or so
   return false
 end
 
@@ -198,4 +247,9 @@ function _merge_prefix(dq, size)
     remaining = remaining - #chunk
   end
   dq:appendleft(table.concat(prefix))
+end
+
+function _double_prefix(deque)
+  local new_len = math.max(deque:at(1), deque:at(2))
+  _merge_prefix(deque, new_len)
 end
