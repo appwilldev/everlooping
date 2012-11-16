@@ -35,8 +35,22 @@ function on_accept(conn)
   end)
 end
 
+function send_udp(stream)
+  stream:write('Hi UDP!\n')
+  stream:read_until('\n', recv_udp)
+end
+
+function recv_udp(stream, data)
+  print('UDP received: ' .. data)
+  stream:close()
+end
+
 local s = util.bind_socket(8001)
 local s2 = util.bind_socket(8001, nil, 'inet6')
+local s3 = assert(S.socket("inet", "dgram, nonblock"))
+local s3 = IOStream(s3)
+local sa = assert(t.sockaddr_in(8001, "127.0.0.1"))
+s3:connect(sa, send_udp)
 
 -- S.fork()
 util.add_accept_handler(s2, on_accept)
