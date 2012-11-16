@@ -10,7 +10,7 @@ function assert(c, s)
 end
 
 local add_accept_handler = require('everlooping.ioloop').add_accept_handler
-local ioloop = require('everlooping.ioloop').defaultIOLoop()
+local ioloop = require('everlooping.ioloop').defaultIOLoop
 local IOStream = require('everlooping.iostream').IOStream
 
 function printReceived(stream, data)
@@ -29,7 +29,10 @@ end
 function on_accept(conn)
   print(string.format('%s:%d connected!', conn.addr.addr, conn.addr.port))
   local stream = IOStream(conn.fd)
-  stream:write('Hi there!\n', start_read)
+  stream:write('Hi there! I\'m '.. S.getpid() ..'\n', start_read)
+  stream:set_close_callback(function()
+    print('Peer closed the connection!')
+  end)
 end
 
 local s = assert(S.socket("inet", "stream, nonblock"))
@@ -37,6 +40,7 @@ s:setsockopt("socket", "reuseaddr", true)
 local sa = assert(t.sockaddr_in(8001, "0.0.0.0"))
 s:bind(sa)
 s:listen(32)
+-- S.fork()
 add_accept_handler(s, on_accept)
 
-ioloop:start()
+ioloop():start()

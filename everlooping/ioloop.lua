@@ -83,8 +83,12 @@ function IOLoop:start()
     end
 
     local events, err = self._epoll_fd:epoll_wait(events, MAX_EVENTS, poll_timeout)
-    if events == nil and err.EINTR then
-      events = {} -- continue to next loop
+    if events == nil then
+      if err.EINTR then
+        events = {} -- continue to next loop
+      else
+        error(err)
+      end
     end
 
     for i = 1, #events do

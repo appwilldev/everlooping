@@ -146,12 +146,16 @@ function IOStreamT:_handle_events(fd, events)
   end
 end
 
+function IOStreamT:set_close_callback(callback)
+  self._close_callback = callback
+end
+
 function IOStreamT:reading()
   return self._read_callback ~= nil
 end
 
 function IOStreamT:writing()
-  return self._write_buffer:length() > 0
+  return self._write_buffer and self._write_buffer:length() > 0
 end
 
 function IOStreamT:_run_callback(callback, ...)
@@ -176,6 +180,15 @@ function IOStreamT:_handle_read()
   self._read_buffer:append(data)
   self._read_buffer_size = self._read_buffer_size + #data
   self:_read_from_buffer()
+  --peer closes the connection
+  if #data == 0 then
+    if self._close_callback then
+      local callback = self._close_callback
+      self._close_callback = nil
+      self:_run_callback(callback)
+    end
+    self:close()
+  end
 end
 
 function IOStreamT:_handle_write()
