@@ -27,7 +27,7 @@ function start_read(stream)
 end
 
 function on_accept(conn)
-  print(conn.addr, 'connected!')
+  print(string.format('%s:%d connected!', conn.addr.addr, conn.addr.port))
   local stream = IOStream(conn.fd)
   stream:write('Hi there!\n', start_read)
 end

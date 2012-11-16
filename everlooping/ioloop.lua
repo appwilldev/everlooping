@@ -115,7 +115,7 @@ function add_accept_handler(sock, callback, ioloop)
     while true do
       local conn, err = sock:accept()
       if not conn then
-        if err.EAGAIN then
+        if err.EAGAIN or err.EWOULDBLOCK then
           return
         end
         error(err)
