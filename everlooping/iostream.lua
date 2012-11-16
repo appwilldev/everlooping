@@ -29,6 +29,8 @@ local _merge_prefix, _double_prefix
 local IOStreamT = {
   IN  = 0x001,
   OUT = 0x004,
+  ERR = 0x008,
+  HUP = 0x010,
 }
 IOStreamT.__index = IOStreamT
 
@@ -105,6 +107,11 @@ end
 
 function IOStreamT:close()
   if not self._closed then
+    if self._close_callback then
+      local callback = self._close_callback
+      self._close_callback = nil
+      self:_run_callback(callback)
+    end
     self.ioloop:remove_handler(self._sock)
     self._sock:close()
     self._write_buffer = nil
@@ -115,7 +122,7 @@ end
 
 function IOStreamT:_add_io_state(state)
   if self._state == nil then
-    self._state = state
+    self._state = bit.bor(state, self.HUP)
     self.ioloop:add_handler(self._sock, partial(self._handle_events, self), self._state)
   elseif bit.band(self._state, state) == 0 then
     self._state = bit.bor(self._state, state)
@@ -127,18 +134,31 @@ function IOStreamT:_handle_events(fd, events)
   if events.IN then
     self:_handle_read()
   end
+  if self._closed then
+    --trigger seq:
+    --  server: send, recv
+    --  peer: connect, recv, close
+    return
+  end
   if events.OUT then
     if self._connecting then
       self:_handle_connect()
     end
     self:_handle_write()
   end
-  local state = 0
+  if events.HUP or events.ERR then
+    --trigger seq:
+    --  server: send, recv, send
+    --  peer: connect, recv, send, close
+    self:close()
+    return
+  end
+  local state = bit.bor(self.HUP, self.ERR)
   if self:reading() then
-    state = bit.bor(0, self.IN)
+    state = bit.bor(state, self.IN)
   end
   if self:writing() then
-    state = bit.bor(0, self.OUT)
+    state = bit.bor(state, self.OUT)
   end
   if state ~= self._state then
     self._state = state
@@ -176,17 +196,16 @@ function IOStreamT:_handle_connect()
 end
 
 function IOStreamT:_handle_read()
-  local data = assert(self._sock:read(buf, bufsize))
+  local data, err = self._sock:read(buf, bufsize)
+  if not data then
+    self:close()
+    return
+  end
   self._read_buffer:append(data)
   self._read_buffer_size = self._read_buffer_size + #data
   self:_read_from_buffer()
   --peer closes the connection
   if #data == 0 then
-    if self._close_callback then
-      local callback = self._close_callback
-      self._close_callback = nil
-      self:_run_callback(callback)
-    end
     self:close()
   end
 end

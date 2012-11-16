@@ -13,9 +13,23 @@ local t, c = S.t, S.c
 local ffi = require('ffi')
 
 --debugging stuff
-local _tostring = require('logging').tostring
+local string_sub = string.sub
+local string_lower  = string.lower
+local string_format = string.format
+local debug_getinfo = debug.getinfo
+local os_date       = os.date
+local io            = io
+local logging = require('logging')
+local logger = logging.new(function(self, level, message)
+  local date = os_date("%Y-%m-%d %H:%M:%S")
+  local frame = debug_getinfo(4)
+  local s = string_format('[%s] [%s] [%s:%d] %s\n', string_sub(date, 6), level, frame.short_src, frame.currentline, message)
+  io.stderr:write(s)
+  return true
+end)
+logger:setLevel('DEBUG')
 local print = function(...)
-  print(_tostring(...))
+  logger:info(...)
 end
 
 module('everlooping.ioloop')

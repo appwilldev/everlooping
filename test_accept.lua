@@ -16,7 +16,7 @@ local IOStream = require('everlooping.iostream').IOStream
 function printReceived(stream, data)
   print(data)
   if string.sub(data, #data, #data) == '\n' then
-    stream:close()
+    stream:write('Hi again\n')
   else
     stream:read_until('\n', printReceived)
   end
@@ -31,14 +31,14 @@ function on_accept(conn)
   local stream = IOStream(conn.fd)
   stream:write('Hi there! I\'m '.. S.getpid() ..'\n', start_read)
   stream:set_close_callback(function()
-    print('Peer closed the connection!')
+    print('Connection closed.')
   end)
 end
 
 local s = util.bind_socket(8001)
 local s2 = util.bind_socket(8001, nil, 'inet6')
 
-S.fork()
+-- S.fork()
 util.add_accept_handler(s2, on_accept)
 util.add_accept_handler(s, on_accept)
 ioloop():start()
