@@ -113,27 +113,3 @@ function defaultIOLoop()
   end
   return singleton
 end
-
-function add_accept_handler(sock, callback, ioloop)
-  ioloop = ioloop or defaultIOLoop()
-  function accept_handler(fd, events)
-    while true do
-      local conn, err = sock:accept()
-      if not conn then
-        if err.EAGAIN or err.EWOULDBLOCK then
-          return
-        end
-        error(err)
-      end
-      callback(conn)
-    end
-  end
-  ioloop:add_handler(sock, accept_handler, "in")
-end
-
-function fork_processes(n)
-  if IOLoop._initialized then
-    error('cannot fork after IOLoop intialized.')
-  end
-  --TODO fork and manage child processes
-end

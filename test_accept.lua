@@ -9,7 +9,7 @@ function assert(c, s)
   return oldassert(c, tostring(s)) -- annoyingly, assert does not call tostring!
 end
 
-local add_accept_handler = require('everlooping.ioloop').add_accept_handler
+local util = require('everlooping.util')
 local ioloop = require('everlooping.ioloop').defaultIOLoop
 local IOStream = require('everlooping.iostream').IOStream
 
@@ -35,12 +35,10 @@ function on_accept(conn)
   end)
 end
 
-local s = assert(S.socket("inet", "stream, nonblock"))
-s:setsockopt("socket", "reuseaddr", true)
-local sa = assert(t.sockaddr_in(8001, "0.0.0.0"))
-s:bind(sa)
-s:listen(32)
--- S.fork()
-add_accept_handler(s, on_accept)
+local s = util.bind_socket(8001)
+util.add_accept_handler(s, on_accept)
+local s = util.bind_socket(8001, nil, 'inet6')
+util.add_accept_handler(s, on_accept)
 
+-- S.fork()
 ioloop():start()
