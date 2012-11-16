@@ -36,9 +36,9 @@ function on_accept(conn)
 end
 
 local s = util.bind_socket(8001)
-util.add_accept_handler(s, on_accept)
-local s = util.bind_socket(8001, nil, 'inet6')
-util.add_accept_handler(s, on_accept)
+local s2 = util.bind_socket(8001, nil, 'inet6')
 
--- S.fork()
+S.fork()
+util.add_accept_handler(s2, on_accept)
+util.add_accept_handler(s, on_accept)
 ioloop():start()
