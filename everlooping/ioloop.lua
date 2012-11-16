@@ -31,6 +31,7 @@ local function getfd(fd)
 end
 
 function IOLoop:new(opts)
+  IOLoop._initialized = true
   opts = opts or {}
   local o = {}
   o.time = opts.time or os.time
@@ -128,4 +129,11 @@ function add_accept_handler(sock, callback, ioloop)
     end
   end
   ioloop:add_handler(sock, accept_handler, "in")
+end
+
+function fork_processes(n)
+  if IOLoop._initialized then
+    error('cannot fork after IOLoop intialized.')
+  end
+  --TODO fork and manage child processes
 end
