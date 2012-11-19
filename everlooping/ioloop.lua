@@ -99,7 +99,7 @@ function IOLoop:start()
 
     local events, err = self._epoll_fd:epoll_wait(events, MAX_EVENTS, poll_timeout)
     if events == nil then
-      if err.EINTR then
+      if err.INTR then
         events = {} -- continue to next loop
       else
         error(err)

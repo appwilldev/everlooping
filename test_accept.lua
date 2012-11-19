@@ -17,9 +17,8 @@ function printReceived(stream, data)
   print(data)
   if string.sub(data, #data, #data) == '\n' then
     stream:write('Hi again\n')
-  else
-    stream:read_until('\n', printReceived)
   end
+  stream:read_until('\n', printReceived)
 end
 
 function start_read(stream)
