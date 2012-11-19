@@ -1,6 +1,8 @@
 #!/usr/bin/env luajit
 
 local assert = assert
+local table = table
+local string = string
 
 local S = require('syscall')
 local t, c = S.t, S.c
@@ -57,4 +59,24 @@ function bind_socket(port, address, family, backlog)
   assert(s:bind(sa))
   s:listen(backlog)
   return s
+end
+
+ffi.cdef[[
+struct hostent {
+  char  *h_name;            /* official name of host */
+  char **h_aliases;         /* alias list */
+  int    h_addrtype;        /* host address type */
+  int    h_length;          /* length of address */
+  char **h_addr_list;       /* list of addresses */
+};
+struct hostent *gethostbyname(const char *name);
+]]
+
+function simpleDNSQuery(host)
+  local ans = ffi.C.gethostbyname(host)
+  if ans == nil then
+    return nil
+  end
+  local ip = ffi.string(ans.h_addr_list[0], 4)
+  return table.concat({string.byte(ip, 1, 4)}, '.')
 end
