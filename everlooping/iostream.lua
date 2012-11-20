@@ -112,10 +112,10 @@ function IOStreamT:close()
       self._close_callback = nil
       self:_run_callback(callback)
     end
-    self.ioloop:remove_handler(self._sock)
-    self._sock:close()
     self._write_buffer = nil
     self._read_buffer = nil
+    self.ioloop:remove_handler(self._sock)
+    self._sock:close()
     self._closed = true
   end
 end
@@ -266,6 +266,10 @@ function IOStreamT:_consume(n)
   return self._read_buffer:popleft()
 end
 
+function IOStreamT:getfd()
+  return self._sock
+end
+
 function _merge_prefix(dq, size)
   local prefix = {}
   local remaining = size
@@ -282,6 +286,7 @@ function _merge_prefix(dq, size)
 end
 
 function _double_prefix(deque)
-  local new_len = math.max(deque:at(1), deque:at(2))
+  local first_len = #deque:leftmost()
+  local new_len = math.max(first_len * 2, first_len + #deque:at(2))
   _merge_prefix(deque, new_len)
 end

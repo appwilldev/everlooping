@@ -11,6 +11,7 @@ local table = table
 local S = require('syscall')
 local t, c = S.t, S.c
 local ffi = require('ffi')
+local Waker = require('everlooping.waker').Waker
 
 --debugging stuff
 local string_sub = string.sub
@@ -57,6 +58,10 @@ function IOLoop:new(opts)
 
   self.__index = self
   setmetatable(o, self)
+  o._waker = Waker:new()
+  o:add_handler(o._waker:fileno(), function()
+    o._waker:consume()
+  end, 'in')
   return o
 end
 
@@ -77,6 +82,7 @@ end
 
 function IOLoop:add_callback(callback)
   table.insert(self._callbacks, callback)
+  self._waker:wake()
 end
 
 function IOLoop:start()
@@ -115,9 +121,12 @@ end
 
 function IOLoop:stop()
   self._stopped = true
+  self._waker:wake()
 end
 
 function IOLoop:close()
+  self:remove_handler(self._waker:fileno())
+  self._waker:close()
   self._epoll_fd:close()
 end
 
