@@ -12,7 +12,6 @@ local S = require('syscall')
 local t, c = S.t, S.c
 local util = require('everlooping.util')
 local partial = util.partial
-local currentstate = require('everlooping.cext').currentstate
 local IOStream = require('everlooping.iostream').IOStream
 
 -- for debug
@@ -45,12 +44,12 @@ function tcpT:connect(addr, port)
     return nil
   end
   local sa = t.sockaddr_in(port, ip)
-  self.stream:connect(sa, partial(_resume_me, currentstate()))
+  self.stream:connect(sa, partial(_resume_me, coroutine.running()))
   coroutine.yield()
 end
 
 function tcpT:receive(pattern)
-  local co = currentstate()
+  local co = coroutine.running()
   self.stream:set_close_callback(function()
     _resume_me(co, self.stream, nil, 'closed')
   end)
@@ -58,11 +57,11 @@ function tcpT:receive(pattern)
   local n = tonumber(pattern)
   local ret, err
   if n then
-    self.stream:read_bytes(n, partial(_resume_me, currentstate()))
+    self.stream:read_bytes(n, partial(_resume_me, coroutine.running()))
     ret, err = coroutine.yield()
   else
     if pattern == '*l' then
-      self.stream:read_until('\n', partial(_resume_me, currentstate()))
+      self.stream:read_until('\n', partial(_resume_me, coroutine.running()))
       ret, err = coroutine.yield()
       if ret then
         ret = string.gsub(ret, '[\r\n]', '')
@@ -78,7 +77,7 @@ function tcpT:receive(pattern)
 end
 
 function tcpT:send(data)
-  self.stream:write(data, partial(_resume_me, currentstate()))
+  self.stream:write(data, partial(_resume_me, coroutine.running()))
   coroutine.yield()
   return #data
 end

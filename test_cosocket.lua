@@ -1,13 +1,12 @@
 #!/usr/bin/env luajit
 
 local cosocket = require('everlooping.cosocket')
-local currentstate = require('everlooping.cext').currentstate
 local ioloop = require('everlooping.ioloop')
 
 count = 0
 
 function request(host, port, data)
-  print('request thread:', currentstate())
+  print('request thread:', coroutine.running())
   local s = cosocket.tcp()
   s:connect(host, port)
   s:send(data)
@@ -31,7 +30,21 @@ end
 
 cosocket.register(function()
   count = count + 1
+  count = count + 1
+  count = count + 1
   request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+end)
+
+cosocket.register(function()
+  count = count + 1
+  request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
+end)
+
+cosocket.register(function()
+  count = count + 1
+  request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
 end)
 
 cosocket.register(function()
@@ -39,5 +52,5 @@ cosocket.register(function()
   request('teamconnected.org', 80, 'GET / HTTP/1.1\r\nHost: teamconnected.org\r\nConnection: close\r\n\r\n')
 end)
 
-print('main thread:', currentstate())
+print('main thread:', coroutine.running())
 ioloop.defaultIOLoop():start()
