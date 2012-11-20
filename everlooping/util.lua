@@ -3,6 +3,9 @@
 local assert = assert
 local table = table
 local string = string
+local select = select
+local unpack = unpack
+local ipairs = ipairs
 
 local S = require('syscall')
 local t, c = S.t, S.c
@@ -10,6 +13,21 @@ local ffi = require('ffi')
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 
 module('everlooping.util')
+
+function partial(func, ...)
+  if select("#", ...) == 0 then
+    return func
+  end
+  local args = {...}
+  return function(...)
+    local _args = {...}
+    local real_args = {unpack(args)}
+    for _, v in ipairs(_args) do
+      table.insert(real_args, v)
+    end
+    return func(unpack(real_args))
+  end
+end
 
 function add_accept_handler(sock, callback, ioloop)
   ioloop = ioloop or defaultIOLoop()

@@ -11,6 +11,8 @@ local string = string
 local S = require('syscall')
 local t, c = S.t, S.c
 local util = require('everlooping.util')
+local partial = util.partial
+local currentstate = require('everlooping.cext').currentstate
 local IOStream = require('everlooping.iostream').IOStream
 
 -- for debug
@@ -18,26 +20,23 @@ local print = print
 
 module('everlooping.cosocket')
 
-local _fd2coroutine = {}
-
 local tcpT = {}
 tcpT.__index = tcpT
 
 function tcp()
   local o = {}
   o._sock = assert(S.socket("inet", "stream, nonblock"))
-  coroutine.yield(o._sock)
   o.stream = IOStream(o._sock)
   setmetatable(o, tcpT)
   return o
 end
 
-local function _resume_me(stream, ...)
-  local co = _fd2coroutine[stream:getfd()]
-  if not co then
-    error('coroutine for fd ' .. stream:getfd() .. 'not found!')
+local function _resume_me(co, stream, ...)
+  local ok, err = coroutine.resume(co, ...)
+  if not ok then
+    print('Error!', err)
+    print('failed coroutine is:', co)
   end
-  coroutine.resume(co, ...)
 end
 
 function tcpT:connect(addr, port)
@@ -46,23 +45,24 @@ function tcpT:connect(addr, port)
     return nil
   end
   local sa = t.sockaddr_in(port, ip)
-  self.stream:connect(sa, _resume_me)
+  self.stream:connect(sa, partial(_resume_me, currentstate()))
   coroutine.yield()
 end
 
 function tcpT:receive(pattern)
+  local co = currentstate()
   self.stream:set_close_callback(function()
-    _resume_me(self.stream, nil, 'closed')
+    _resume_me(co, self.stream, nil, 'closed')
   end)
 
   local n = tonumber(pattern)
   local ret, err
   if n then
-    self.stream:read_bytes(n, _resume_me)
+    self.stream:read_bytes(n, partial(_resume_me, currentstate()))
     ret, err = coroutine.yield()
   else
     if pattern == '*l' then
-      self.stream:read_until('\n', _resume_me)
+      self.stream:read_until('\n', partial(_resume_me, currentstate()))
       ret, err = coroutine.yield()
       if ret then
         ret = string.gsub(ret, '[\r\n]', '')
@@ -78,7 +78,7 @@ function tcpT:receive(pattern)
 end
 
 function tcpT:send(data)
-  self.stream:write(data, _resume_me)
+  self.stream:write(data, partial(_resume_me, currentstate()))
   coroutine.yield()
   return #data
 end
@@ -89,12 +89,8 @@ end
 
 function register(func)
   local co = coroutine.create(func)
-  local ok, fd = coroutine.resume(co)
-  if ok then
-    _fd2coroutine[fd] = co
-    ok, fd = coroutine.resume(co)
-  end
+  local ok, err = coroutine.resume(co)
   if not ok then
-    print('Error!', fd)
+    print('Error running cosocket coroutine:', err)
   end
 end

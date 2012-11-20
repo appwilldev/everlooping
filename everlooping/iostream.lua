@@ -2,9 +2,6 @@ local assert = assert
 local setmetatable = setmetatable
 local table = table
 local string = string
-local select = select
-local unpack = unpack
-local ipairs = ipairs
 local error = error
 local math = math
 
@@ -13,6 +10,7 @@ local S = require('syscall')
 local t, c = S.t, S.c
 local def_ioloop = require('everlooping.ioloop').defaultIOLoop
 local deque = require('everlooping.deque').deque
+local partial = require('everlooping.util').partial
 
 --debugging stuff
 local _tostring = require('logging').tostring
@@ -33,21 +31,6 @@ local IOStreamT = {
   HUP = 0x010,
 }
 IOStreamT.__index = IOStreamT
-
-local function partial(func, ...)
-  if select("#", ...) == 0 then
-    return func
-  end
-  local args = {...}
-  return function(...)
-    local _args = {...}
-    local real_args = {unpack(args)}
-    for _, v in ipairs(_args) do
-      table.insert(real_args, v)
-    end
-    return func(unpack(real_args))
-  end
-end
 
 function IOStream(sock, ioloop)
   local o = {}
