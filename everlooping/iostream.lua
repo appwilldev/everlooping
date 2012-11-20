@@ -167,13 +167,14 @@ end
 
 function IOStreamT:_handle_connect()
   local err = self._sock:getsockopt(1, 4) -- SOL_SOCKET, SO_ERROR
-  if err ~= 0 then
-    error(t.error(err))
-  end
   if self._connect_callback then
     local callback = self._connect_callback
     self._connect_callback = nil
-    self:_run_callback(callback)
+    if err ~= 0 then
+      self:_run_callback(callback, false, t.error(err))
+    else
+      self:_run_callback(callback, true)
+    end
   end
   self._connecting = false
 end
@@ -224,7 +225,7 @@ function IOStreamT:_read_from_buffer()
   elseif self._read_delimiter then
     if self._read_buffer:length() > 0 then
       while true do
-        local loc = string.find(self._read_buffer:at(1), self._read_delimiter, 1, true)
+        local loc = string.find(self._read_buffer:leftmost(), self._read_delimiter, 1, true)
         if loc then
           local callback = self._read_callback
           local delimiter_len = #self._read_delimiter

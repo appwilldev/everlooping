@@ -10,6 +10,7 @@ function assert(c, s)
 end
 
 local util = require('everlooping.util')
+local netutil = require('everlooping.netutil')
 local ioloop = require('everlooping.ioloop').defaultIOLoop
 local IOStream = require('everlooping.iostream').IOStream
 
@@ -52,6 +53,6 @@ local sa = assert(t.sockaddr_in(8001, "127.0.0.1"))
 s3:connect(sa, send_udp)
 
 -- S.fork()
-util.add_accept_handler(s2, on_accept)
-util.add_accept_handler(s, on_accept)
+netutil.add_accept_handler(s2, on_accept)
+netutil.add_accept_handler(s, on_accept)
 ioloop():start()

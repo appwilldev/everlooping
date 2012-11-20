@@ -41,11 +41,11 @@ end
 function tcpT:connect(addr, port)
   local ip = util.simpleDNSQuery(addr)
   if not ip then
-    return nil
+    return nil, 'bad address'
   end
   local sa = t.sockaddr_in(port, ip)
   self.stream:connect(sa, partial(_resume_me, coroutine.running()))
-  coroutine.yield()
+  return coroutine.yield()
 end
 
 function tcpT:receive(pattern)
@@ -60,7 +60,7 @@ function tcpT:receive(pattern)
     self.stream:read_bytes(n, partial(_resume_me, coroutine.running()))
     ret, err = coroutine.yield()
   else
-    if pattern == '*l' then
+    if pattern == '*l' or pattern == nil then
       self.stream:read_until('\n', partial(_resume_me, coroutine.running()))
       ret, err = coroutine.yield()
       if ret then
@@ -74,6 +74,10 @@ function tcpT:receive(pattern)
   end
   self.stream:set_close_callback(nil)
   return ret, err
+end
+
+function tcpT:settimeout()
+  print('NotImplemented: settimeout')
 end
 
 function tcpT:send(data)

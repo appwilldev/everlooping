@@ -5,6 +5,7 @@ local setmetatable = setmetatable
 local type = type
 local ipairs = ipairs
 local error = error
+local next = next
 local os = os
 local table = table
 
@@ -12,6 +13,7 @@ local S = require('syscall')
 local t, c = S.t, S.c
 local ffi = require('ffi')
 local Waker = require('everlooping.waker').Waker
+local util = require('everlooping.util')
 
 --debugging stuff
 local string_sub = string.sub
@@ -77,7 +79,13 @@ function IOLoop:update_handler(fd, events)
 end
 
 function IOLoop:remove_handler(fd)
+  local ifd = getfd(fd)
   assert(self._epoll_fd:epoll_ctl('del', fd, 0))
+  self._fds[ifd] = nil
+  self._handers[ifd] = nil
+  if util.table_length(self._fds) == 1 then
+    self:stop()
+  end
 end
 
 function IOLoop:add_callback(callback)
