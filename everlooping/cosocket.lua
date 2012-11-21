@@ -67,7 +67,8 @@ function tcpT:receive(pattern)
         ret = string.gsub(ret, '[\r\n]', '')
       end
     elseif pattern == '*a' then
-      error('NotImplementedError: read_until_close')
+      self.stream:read_until_close(partial(_resume_me, coroutine.running()))
+      ret, err = coroutine.yield()
     else
       error('bad format for tcp:receive')
     end

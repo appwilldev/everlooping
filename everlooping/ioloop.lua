@@ -84,7 +84,9 @@ function IOLoop:remove_handler(fd)
   self._fds[ifd] = nil
   self._handers[ifd] = nil
   if util.table_length(self._fds) == 1 then
-    self:stop()
+    self:add_callback(function()
+      self:stop()
+    end)
   end
 end
 

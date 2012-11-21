@@ -17,26 +17,42 @@ function request(host, port, data)
       break
     end
   end
-  s:close()
   print('Request complete.')
 end
 
-cosocket.register(function()
-  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
-  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
-  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
-end)
-
 -- cosocket.register(function()
---   request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
+--   request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+--   request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+--   request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
 -- end)
 
 -- cosocket.register(function()
 --   request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
 -- end)
 
+-- cosocket.register(function()
+--   request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
+-- end)
+
+-- cosocket.register(function()
+--   request('teamconnected.org', 80, 'GET / HTTP/1.1\r\nHost: teamconnected.org\r\nConnection: close\r\n\r\n')
+-- end)
+
 cosocket.register(function()
-  request('teamconnected.org', 80, 'GET / HTTP/1.1\r\nHost: teamconnected.org\r\nConnection: close\r\n\r\n')
+  print('request thread:', coroutine.running())
+  local host = 'baidu.com'
+  local port = 80
+  local data = 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n'
+  local s = cosocket.tcp()
+  s:connect(host, port)
+  s:send(data)
+  local l, err = s:receive('*a')
+  if l then
+    print(l)
+  else
+    print(l, err)
+  end
+  print('Request complete.')
 end)
 
 print('main thread:', coroutine.running())

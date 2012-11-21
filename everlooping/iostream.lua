@@ -62,6 +62,17 @@ function IOStreamT:read_until(delimiter, callback)
   self:_try_inline_read()
 end
 
+function IOStreamT:read_until_close(callback)
+  self:_set_read_callback(callback)
+  if self._closed then
+    self:_run_callback(callback, self:_consume(self._read_buffer_size))
+    self._read_callback = nil
+    return
+  end
+  self._read_until_close = true
+  self:_add_io_state(self.IN)
+end
+
 function IOStreamT:_set_read_callback(callback)
   if self._read_callback then
     error('Already reading')
@@ -90,6 +101,15 @@ end
 
 function IOStreamT:close()
   if not self._closed then
+    if self._read_until_close then
+      callback = self._read_callback
+      self._read_callback = nil
+      self._read_until_close = nil
+      self:_run_callback(callback, self:_consume(self._read_buffer_size))
+      -- self._close_callback may have changed; let't try again from the start
+      self:_run_callback(self.close, self)
+      return
+    end
     if self._close_callback then
       local callback = self._close_callback
       self._close_callback = nil
