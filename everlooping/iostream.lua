@@ -90,7 +90,7 @@ end
 
 function IOStreamT:write(data, callback)
   if self._closed then
-    error('closed')
+    return nil, 'closed'
   end
   self._write_buffer:append(data)
   self._write_callback = callback
@@ -153,6 +153,7 @@ function IOStreamT:_handle_events(fd, events)
     --trigger seq:
     --  server: send, recv, send
     --  peer: connect, recv, send, close
+    --timeout
     self:close()
     return
   end
