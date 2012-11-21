@@ -55,19 +55,19 @@ function PQueueT:_heapifydown(n)
     return
   end
   local rchild = self[rchild_pos]
-  local should_swap
+  local should_swapleft
   if data[1] > lchild[1] then
-    should_swap = true
+    should_swapleft = true
   end
-  if rchild and should_swap and data[1] > rchild[1] then
-    if lchild[1] > rchild[1] then
+  if rchild and data[1] > rchild[1] then
+    if (should_swapleft and lchild[1] > rchild[1]) or not should_swapleft then
       self[rchild_pos] = data
       self[n] = rchild
       self:_heapifydown(rchild_pos)
-      should_swap = false
+      should_swapleft = false
     end
   end
-  if should_swap then
+  if should_swapleft then
     self[lchild_pos] = data
     self[n] = lchild
     self:_heapifydown(lchild_pos)
