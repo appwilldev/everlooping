@@ -34,34 +34,44 @@ end
 --   request('lilydjwg.is-programmer.com', 80, 'GET / HTTP/1.1\r\nHost: lilydjwg.is-programmer.com\r\nConnection: close\r\n\r\n')
 -- end)
 
--- cosocket.register(function()
---   request('www.google.com', 80, 'GET / HTTP/1.1\r\nHost: www.google.com\r\nConnection: close\r\n\r\n')
--- end)
-
 cosocket.register(function()
-  request('twitter.com', 80, 'GET / HTTP/1.1\r\nHost: twitter.com\r\nConnection: close\r\n\r\n')
+  request('www.google.com', 80, 'GET / HTTP/1.1\r\nHost: www.google.com\r\nConnection: close\r\n\r\n')
+  print('fall into 4-second-long sleep...')
+  cosocket.sleep(4)
+  print('woke up from 4-second-long sleep!')
+  request('baidu.com', 80, 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n')
+  print('fall into 3-second-long sleep...')
+  cosocket.sleep(3)
+  print('woke up from 3-second-long sleep!')
 end)
+
+-- cosocket.register(function()
+--   request('twitter.com', 80, 'GET / HTTP/1.1\r\nHost: twitter.com\r\nConnection: close\r\n\r\n')
+-- end)
 
 -- cosocket.register(function()
 --   request('teamconnected.org', 80, 'GET / HTTP/1.1\r\nHost: teamconnected.org\r\nConnection: close\r\n\r\n')
 -- end)
 
--- cosocket.register(function()
---   print('request thread:', coroutine.running())
---   local host = 'baidu.com'
---   local port = 80
---   local data = 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n'
---   local s = cosocket.tcp()
---   s:connect(host, port)
---   s:send(data)
---   local l, err = s:receive('*a')
---   if l then
---     print(l)
---   else
---     print(l, err)
---   end
---   print('Request complete.')
--- end)
+cosocket.register(function()
+  print('request thread:', coroutine.running())
+  local host = 'baidu.com'
+  local port = 80
+  local data = 'GET / HTTP/1.1\r\nHost: baidu.com\r\nConnection: close\r\n\r\n'
+  local s = cosocket.tcp()
+  s:connect(host, port)
+  s:send(data)
+  local l, err = s:receive('*a')
+  if l then
+    print(l)
+  else
+    print(l, err)
+  end
+  print('fall into 7-second-long sleep...')
+  cosocket.sleep(7)
+  print('woke up from 7-second-long sleep!')
+  print('Request complete.')
+end)
 
 print('main thread:', coroutine.running())
 ioloop.defaultIOLoop():start()

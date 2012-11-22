@@ -13,6 +13,7 @@ local t, c = S.t, S.c
 local util = require('everlooping.util')
 local partial = util.partial
 local IOStream = require('everlooping.iostream').IOStream
+local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 
 -- for debug
 local print = print
@@ -21,6 +22,9 @@ module('everlooping.cosocket')
 
 local tcpT = {}
 tcpT.__index = tcpT
+
+-- defer possible defaultIOLoop creation
+local ioloop
 
 function tcp()
   local o = {}
@@ -36,6 +40,14 @@ local function _resume_me(co, stream, ...)
     print('Error!', err)
     print('failed coroutine is:', co)
   end
+end
+
+function sleep(secs)
+  if not ioloop then
+    ioloop = defaultIOLoop()
+  end
+  ioloop:add_timeout(ioloop.time() + secs, partial(_resume_me, coroutine.running()))
+  return coroutine.yield()
 end
 
 function tcpT:connect(addr, port)

@@ -6,7 +6,7 @@ local type = type
 local ipairs = ipairs
 local error = error
 local next = next
-local math = math
+local min = math.min
 local os = os
 local table = table
 
@@ -86,7 +86,11 @@ function IOLoop:remove_handler(fd)
   assert(self._epoll_fd:epoll_ctl('del', fd, 0))
   self._fds[ifd] = nil
   self._handers[ifd] = nil
-  if util.table_length(self._fds) == 1 then
+  self:_may_auto_stop()
+end
+
+function IOLoop:_may_auto_stop()
+  if util.table_length(self._fds) == 1 and #self._timeouts == 0 then
     self:add_callback(function()
       self:stop()
     end)
@@ -130,15 +134,14 @@ function IOLoop:start()
           to:pop()
         elseif to[1][1] <= now then
           local timeout = to:pop()[2]
-          print(timeout)
-          print(to)
           timeout.callback()
         else
           local seconds = to[1][1] - now
-          poll_timeout = math.min(seconds, poll_timeout)
+          poll_timeout = min(seconds, poll_timeout)
           break
         end
       end
+      self:_may_auto_stop()
     end
 
     if #self._callbacks > 0 then
