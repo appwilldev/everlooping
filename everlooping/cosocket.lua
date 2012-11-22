@@ -93,7 +93,6 @@ function tcpT:connect(addr, port)
 end
 
 function tcpT:receive(pattern)
-  print(self._timeoutlen)
   self:_adjust_timeout()
   local co = coroutine.running()
   self.stream:set_close_callback(function()
@@ -133,7 +132,8 @@ function tcpT:send(data)
   self.stream:write(data, partial(_resume_me, coroutine.running()))
   local ok, err = coroutine.yield()
   self:_not_timedout()
-  if not ok then
+  -- ok will always be nil
+  if err then
     return ok, err
   else
     return #data
