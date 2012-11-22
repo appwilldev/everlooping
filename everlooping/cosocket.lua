@@ -42,6 +42,15 @@ local function _resume_me(co, stream, ...)
   end
 end
 
+local function _timed_out(co, stream)
+  stream:close()
+  local ok, err = coroutine.resume(co, false, 'Timeout')
+  if not ok then
+    print('Error!', err)
+    print('failed coroutine is:', co)
+  end
+end
+
 function sleep(secs)
   if not ioloop then
     ioloop = defaultIOLoop()
@@ -50,17 +59,42 @@ function sleep(secs)
   return coroutine.yield()
 end
 
+function tcpT:_adjust_timeout()
+  if self._timeoutlen == nil then
+    return
+  end
+  if not ioloop then
+    ioloop = defaultIOLoop()
+  end
+  self._timeout = ioloop:add_timeout(
+    ioloop.time() + self._timeoutlen, partial(_timed_out, coroutine.running(), self.stream)
+  )
+end
+
+function tcpT:_not_timedout()
+  if self._timeout then
+    ioloop:remove_timeout(self._timeout)
+    self._timeout = nil
+  end
+end
+
 function tcpT:connect(addr, port)
+  self:_adjust_timeout()
   local ip = util.simpleDNSQuery(addr)
   if not ip then
+    self:_not_timedout()
     return nil, 'bad address'
   end
   local sa = t.sockaddr_in(port, ip)
   self.stream:connect(sa, partial(_resume_me, coroutine.running()))
-  return coroutine.yield()
+  local ok, err = coroutine.yield()
+  self:_not_timedout()
+  return ok, err
 end
 
 function tcpT:receive(pattern)
+  print(self._timeoutlen)
+  self:_adjust_timeout()
   local co = coroutine.running()
   self.stream:set_close_callback(function()
     _resume_me(co, self.stream, nil, 'closed')
@@ -86,17 +120,24 @@ function tcpT:receive(pattern)
     end
   end
   self.stream:set_close_callback(nil)
+  self:_not_timedout()
   return ret, err
 end
 
-function tcpT:settimeout()
-  print('NotImplemented: settimeout')
+function tcpT:settimeout(ms)
+  self._timeoutlen = ms / 1000
 end
 
 function tcpT:send(data)
+  self:_adjust_timeout()
   self.stream:write(data, partial(_resume_me, coroutine.running()))
-  coroutine.yield()
-  return #data
+  local ok, err = coroutine.yield()
+  self:_not_timedout()
+  if not ok then
+    return ok, err
+  else
+    return #data
+  end
 end
 
 function tcpT:close()
