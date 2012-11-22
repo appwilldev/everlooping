@@ -6,6 +6,7 @@ local type = type
 local ipairs = ipairs
 local error = error
 local next = next
+local math = math
 local os = os
 local table = table
 
@@ -13,6 +14,7 @@ local S = require('syscall')
 local t, c = S.t, S.c
 local ffi = require('ffi')
 local Waker = require('everlooping.waker').Waker
+local PQueue = require('everlooping.pqueue').PQueue
 local util = require('everlooping.util')
 
 --debugging stuff
@@ -57,6 +59,7 @@ function IOLoop:new(opts)
   o._epoll_fd = assert(S.epoll_create())
   o._stopped = false
   o._callbacks = {}
+  o._timeouts = PQueue()
 
   self.__index = self
   setmetatable(o, self)
@@ -95,6 +98,16 @@ function IOLoop:add_callback(callback)
   self._waker:wake()
 end
 
+function IOLoop:add_timeout(deadline, callback)
+  local timeout = {callback=callback}
+  self._timeouts:push(deadline, timeout)
+  return timeout
+end
+
+function IOLoop:remove_timeout(timeout)
+  timeout.callback = nil
+end
+
 function IOLoop:start()
   if self._stopped then
     self._stopped = false
@@ -107,6 +120,25 @@ function IOLoop:start()
     self._callbacks = {}
     for _, callback in ipairs(callbacks) do
       callback()
+    end
+
+    if #self._timeouts > 0 then
+      local now = self.time()
+      local to = self._timeouts
+      while #to > 0 do
+        if to[1][2].callback == nil then --cancelled
+          to:pop()
+        elseif to[1][1] <= now then
+          local timeout = to:pop()[2]
+          print(timeout)
+          print(to)
+          timeout.callback()
+        else
+          local seconds = to[1][1] - now
+          poll_timeout = math.min(seconds, poll_timeout)
+          break
+        end
+      end
     end
 
     if #self._callbacks > 0 then
