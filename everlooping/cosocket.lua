@@ -20,7 +20,7 @@ local print = print
 
 module('everlooping.cosocket')
 
-local tcpT = {}
+tcpT = {}
 tcpT.__index = tcpT
 
 -- defer possible defaultIOLoop creation
