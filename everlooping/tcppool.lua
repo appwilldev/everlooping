@@ -9,7 +9,7 @@ local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 module('everlooping.tcppool')
 
 local PoolT = {
-  defaultTimeout = 60,
+  defaultTimeout = 60 * 1000,
   defaultPoolsize = 30,
 }
 PoolT.__index = PoolT
@@ -76,7 +76,7 @@ function tcpT:setkeepalive(timeout, size)
     pool._busy_sockets[self.stream] = nil
   end
   local timeout = pool.ioloop:add_timeout(
-    pool.ioloop.time() + timeout or pool.defaultTimeout,
+    pool.ioloop.time() + (timeout or pool.defaultTimeout),
     function()
       pool._idle_sockets[self.key] = nil
       self.stream:close()
