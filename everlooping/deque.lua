@@ -1,5 +1,4 @@
 local setmetatable = setmetatable
-local t_insert = table.insert
 
 module('everlooping.deque')
 

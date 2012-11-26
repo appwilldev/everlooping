@@ -1,10 +1,17 @@
 local setmetatable = setmetatable
 
---for debug
-local print = print
+--debugging stuff
+local _tostring = require('logging').tostring
+local print = function(...)
+  for _, i in ipairs({...}) do
+    print(_tostring(i))
+  end
+end
 
 local cosocket = require('everlooping.cosocket')
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
+local dictqueue = require('everlooping.dictqueue').dictqueue
+local dictwithsize = require('everlooping.dictwithsize').dictwithsize
 
 module('everlooping.tcppool')
 
@@ -22,26 +29,35 @@ function Pool(size, ioloop)
   local o = {}
   o.size = size or PoolT.defaultTimeout
   o.ioloop = ioloop or defaultIOLoop()
-  o._busy_sockets = {}
-  o._idle_sockets = {}
+  o._busy_sockets = dictwithsize()
+  o._idle_sockets = dictqueue(function(item)
+    item[1]:close()
+  end)
   setmetatable(o, PoolT)
   return o
 end
 
 function PoolT:getout(key)
-  if self._idle_sockets[key] then
-    local stream = self._idle_sockets[key]
-    self._idle_sockets[key] = nil
-    self._busy_sockets[stream] = true
+  local stream = self._idle_sockets:get(key)
+  if stream then
+    self._idle_sockets:delete(key, true)
+    self._busy_sockets:set(stream, true)
     return stream
   end
 end
 
 function PoolT:put(key, stream, timeout)
-  if self._busy_sockets[stream] then
-    self._busy_sockets[stream] = nil
+  if self._busy_sockets:get(stream) then
+    self._busy_sockets:set(stream, nil)
   end
-  self._idle_sockets[key] = {stream, timeout}
+  self._idle_sockets:set(key, {stream, timeout})
+  if self._idle_sockets:length() + self._busy_sockets:length() > self.size then
+    self._idle_sockets:popleft()
+  end
+end
+
+function PoolT:delete(key)
+  self._idle_sockets:delete(key)
 end
 
 local tcpT = {}
@@ -83,8 +99,7 @@ function tcpT:setkeepalive(timeout, size)
   local timeout = pool.ioloop:add_timeout(
     pool.ioloop.time() + (timeout or pool.defaultTimeout) / 1000,
     function()
-      pool._idle_sockets[self.key] = nil
-      self.stream:close()
+      pool:delete(self.key)
     end)
   pool:put(self.key, self.stream, timeout)
 end

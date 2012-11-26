@@ -25,7 +25,7 @@ function request(host, port, data)
       break
     end
   end
-  s:setkeepalive(5)
+  s:setkeepalive(5000)
   print('Request complete.')
 end
 
