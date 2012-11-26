@@ -37,6 +37,13 @@ function PoolT:getout(key)
   end
 end
 
+function PoolT:put(key, stream, timeout)
+  if self._busy_sockets[stream] then
+    self._busy_sockets[stream] = nil
+  end
+  self._idle_sockets[key] = {stream, timeout}
+end
+
 local tcpT = {}
 tcpT.__index = tcpT
 setmetatable(tcpT, cosocket.tcpT)
@@ -69,11 +76,9 @@ function tcpT:connect(addr, port)
 end
 
 function tcpT:setkeepalive(timeout, size)
+  self._keepalive = true
   if not pool then
     pool = Pool(size)
-  end
-  if pool._busy_sockets[self.stream] then
-    pool._busy_sockets[self.stream] = nil
   end
   local timeout = pool.ioloop:add_timeout(
     pool.ioloop.time() + (timeout or pool.defaultTimeout) / 1000,
@@ -81,8 +86,7 @@ function tcpT:setkeepalive(timeout, size)
       pool._idle_sockets[self.key] = nil
       self.stream:close()
     end)
-  self._keepalive = true
-  pool._idle_sockets[self.key] = {self.stream, timeout}
+  pool:put(self.key, self.stream, timeout)
 end
 
 function tcpT:close()
