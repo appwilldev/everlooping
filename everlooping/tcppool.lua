@@ -76,7 +76,7 @@ function tcpT:setkeepalive(timeout, size)
     pool._busy_sockets[self.stream] = nil
   end
   local timeout = pool.ioloop:add_timeout(
-    pool.ioloop.time() + (timeout or pool.defaultTimeout),
+    pool.ioloop.time() + (timeout or pool.defaultTimeout) / 1000,
     function()
       pool._idle_sockets[self.key] = nil
       self.stream:close()
