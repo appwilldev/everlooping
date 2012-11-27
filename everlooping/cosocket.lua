@@ -4,6 +4,7 @@ local assert = assert
 local setmetatable = setmetatable
 local error = error
 local tonumber = tonumber
+local tostring = tostring
 local table = table
 local coroutine = coroutine
 local string = string
@@ -11,6 +12,7 @@ local string = string
 local S = require('syscall')
 local t, c = S.t, S.c
 local util = require('everlooping.util')
+local netutil = require('everlooping.netutil')
 local partial = util.partial
 local IOStream = require('everlooping.iostream').IOStream
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
@@ -26,9 +28,9 @@ tcpT.__index = tcpT
 -- defer possible defaultIOLoop creation
 local ioloop
 
-function tcp()
+function tcp(sock)
   local o = {}
-  o._sock = assert(S.socket("inet", "stream, nonblock"))
+  o._sock = sock or assert(S.socket("inet", "stream, nonblock"))
   o.stream = IOStream(o._sock)
   setmetatable(o, tcpT)
   return o
@@ -76,6 +78,41 @@ function tcpT:_not_timedout()
     ioloop:remove_timeout(self._timeout)
     self._timeout = nil
   end
+end
+
+function tcpT:bind(address, port)
+  if address == '*' then
+    address = '0.0.0.0'
+  end
+  local sa = assert(t.sockaddr_in(port, address))
+  self._sock:setsockopt("socket", "reuseaddr", true)
+  local ok, err = self._sock:bind(sa)
+  if not ok then
+    return nil, tostring(err)
+  else
+    return 1
+  end
+end
+
+function tcpT:listen(backlog)
+  local ok, err = self._sock:listen(backlog)
+  if not ok then
+    return nil, tostring(err)
+  else
+    return 1
+  end
+end
+
+local function _handle_accept(onaccept)
+  return function(conn)
+    register(function()
+      onaccept(tcp(conn.fd), {conn.addr.addr, conn.addr.port})
+    end)
+  end
+end
+
+function tcpT:accept(onaccept)
+  netutil.add_accept_handler(self._sock, _handle_accept(onaccept))
 end
 
 function tcpT:connect(addr, port)
