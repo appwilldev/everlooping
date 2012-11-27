@@ -5,7 +5,7 @@ ngx = require('ngx')
 ngx.var = {
   MOOCHINE_APP_PATH = '/home/lilydjwg/src/moochine-demo',
   MOOCHINE_APP_NAME = 'test',
-  REQUEST_URI = '/hello?name=abcdef',
+  REQUEST_URI = '/hello?name=world',
   request_method = 'GET',
 }
 
@@ -15,7 +15,7 @@ ngx.req = {
   end,
   get_uri_args = function()
     return {
-      name = 'abcdef',
+      name = 'world',
     }
   end,
 }

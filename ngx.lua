@@ -6,6 +6,7 @@ local ipairs = ipairs
 local _print = print
 local os = os
 local cosocket = require('everlooping.tcppool')
+local write = function(s) io.stdout:write(s) end
 
 module('ngx')
 
@@ -38,15 +39,18 @@ sleep = cosocket.sleep
 log = function(...)
   _print('LOG: ', ...)
 end
-say = _print
 print = function(t)
   for _, i in ipairs(t) do
     if type(i) == 'table' then
       print(i)
     else
-      _print(i)
+      write(i)
     end
   end
+end
+say = function(t)
+  print(t)
+  _print()
 end
 eof = function() _print('EOF') end
 exit = function(n) _print('Exit with ' .. n) end
