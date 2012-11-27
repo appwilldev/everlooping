@@ -1,7 +1,9 @@
 #!/usr/bin/env luajit
 
 local setmetatable = setmetatable
-local print = print
+local type = type
+local ipairs = ipairs
+local _print = print
 local os = os
 local cosocket = require('everlooping.tcppool')
 
@@ -17,18 +19,14 @@ shared = setmetatable({}, {
 ctx = setmetatable({}, {
   __index = function(t, i)
     t[i] = {}
+    return t[i]
   end
 })
 
 null = {}
-
-var = {
-  HADDIT_CONFIG = nil,
-  MOOCHINE_APP_PATH = nil,
-}
+header = {}
 
 time = os.time
-log = print
 ERR = 'ERROR'
 
 md5 = nil
@@ -37,3 +35,18 @@ location = {
 }
 
 sleep = cosocket.sleep
+log = function(...)
+  _print('LOG: ', ...)
+end
+say = _print
+print = function(t)
+  for _, i in ipairs(t) do
+    if type(i) == 'table' then
+      print(i)
+    else
+      _print(i)
+    end
+  end
+end
+eof = function() _print('EOF') end
+exit = function(n) _print('Exit with ' .. n) end
