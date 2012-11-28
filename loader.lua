@@ -3,10 +3,12 @@
 ngx = require('ngx')
 
 ngx.var = {
-  MOOCHINE_APP_PATH = '/home/lilydjwg/src/moochine-demo',
+  MOOCHINE_APP_PATH = os.getenv('PWD'),
   MOOCHINE_APP_NAME = 'test',
-  REQUEST_URI = '/hello?name=world',
+  HADDIT_APP_PATH = os.getenv('HADDIT_HOME') .. '/luasrc',
+  HADDIT_CONFIG = os.getenv('PWD') .. '/conf/haddit.config',
   request_method = 'GET',
+  REQUEST_URI = '/new_device',
 }
 
 ngx.req = {
@@ -15,14 +17,28 @@ ngx.req = {
   end,
   get_uri_args = function()
     return {
-      name = 'world',
+      macaddr = 'pureluatest5',
     }
   end,
 }
 
-assert(loadfile(arg[1]))()
+local ffi = require('ffi')
+-- keep the reference in L
+local L = ffi.load('crypto', true)
+local L2 = ffi.load('ngxc', true)
 
-print('Headers:')
-for k, v in pairs(ngx.header) do
-  print(k .. ': ' .. v)
-end
+local cosocket = require('everlooping.tcppool')
+local ioloop = require('everlooping.ioloop')
+
+cosocket.register(function()
+  assert(loadfile(arg[1]))()
+
+  print('Headers:')
+  for k, v in pairs(ngx.header) do
+    print(k .. ': ' .. v)
+  end
+
+  ioloop.defaultIOLoop():stop()
+end)
+
+ioloop.defaultIOLoop():start()
