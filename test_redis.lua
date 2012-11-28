@@ -2,6 +2,7 @@
 
 local cosocket = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
+ngx = require('ngx')
 local redis = require("resty.redis")
 local cjson = require("cjson")
 

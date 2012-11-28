@@ -29,6 +29,10 @@ function gsdT:set(k, v, expire)
   self._data[k] = v
 end
 
+function gsdT:replace(k, v, expire)
+  self._data[k] = v
+end
+
 function gsdT:delete(k)
   self._data[k] = nil
 end
