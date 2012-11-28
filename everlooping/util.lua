@@ -7,6 +7,7 @@ local select = select
 local unpack = unpack
 local pairs = pairs
 local ipairs = ipairs
+local type = type
 
 local S = require('syscall')
 local t, c = S.t, S.c
@@ -81,4 +82,16 @@ function simpleDNSQuery(host)
   end
   local ip = ffi.string(ans.h_addr_list[0], 4)
   return table.concat({string.byte(ip, 1, 4)}, '.')
+end
+
+function flatten_table(t)
+  local s = ''
+  for _, v in ipairs(t) do
+    if type(v) == 'table' then
+      s = s .. flatten_table(v)
+    else
+      s = s .. v
+    end
+  end
+  return s
 end

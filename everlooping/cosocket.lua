@@ -5,6 +5,7 @@ local setmetatable = setmetatable
 local error = error
 local tonumber = tonumber
 local tostring = tostring
+local type = type
 local table = table
 local coroutine = coroutine
 local string = string
@@ -19,6 +20,7 @@ local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 
 -- for debug
 local print = print
+local debug = debug
 
 module('everlooping.cosocket')
 
@@ -166,6 +168,9 @@ end
 
 function tcpT:send(data)
   self:_adjust_timeout()
+  if type(data) == 'table' then
+    data = util.flatten_table(data)
+  end
   self.stream:write(data, partial(_resume_me, coroutine.running()))
   local ok, err = coroutine.yield()
   self:_not_timedout()
