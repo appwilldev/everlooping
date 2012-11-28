@@ -18,6 +18,7 @@ local PQueue = require('everlooping.pqueue').PQueue
 local util = require('everlooping.util')
 
 --debugging stuff
+local debug = debug
 local string_sub = string.sub
 local string_lower  = string.lower
 local string_format = string.format
@@ -27,7 +28,7 @@ local io            = io
 local logging = require('logging')
 local logger = logging.new(function(self, level, message)
   local date = os_date("%Y-%m-%d %H:%M:%S")
-  local frame = debug_getinfo(4)
+  local frame = debug_getinfo(3)
   local s = string_format('[%s] [%s] [%s:%d] %s\n', string_sub(date, 6), level, frame.short_src, frame.currentline, message)
   io.stderr:write(s)
   return true
@@ -136,8 +137,8 @@ function IOLoop:start()
           local timeout = to:pop()[2]
           timeout.callback()
         else
-          local seconds = to[1][1] - now
-          poll_timeout = min(seconds, poll_timeout)
+          local ms = (to[1][1] - now) * 1000
+          poll_timeout = min(ms, poll_timeout)
           break
         end
       end

@@ -16,7 +16,7 @@ local dictwithsize = require('everlooping.dictwithsize').dictwithsize
 module('everlooping.tcppool')
 
 local PoolT = {
-  defaultTimeout = 60 * 1000,
+  defaultTimeout = 60,
   defaultPoolsize = 30,
 }
 PoolT.__index = PoolT
@@ -27,7 +27,7 @@ end
 
 function Pool(size, ioloop)
   local o = {}
-  o.size = size or PoolT.defaultTimeout
+  o.size = size or PoolT.defaultPoolsize
   o.ioloop = ioloop or defaultIOLoop()
   o._busy_sockets = dictwithsize()
   o._idle_sockets = dictqueue(function(item)
@@ -74,9 +74,11 @@ end
 function tcpT:connect(addr, port)
   self.key = hash_key(addr, port)
   if not pool then
+    print('not pooled')
     self.stream._reused = 0
     return baseTcpT.connect(self, addr, port)
   else
+    print(pool)
     local o = pool:getout(self.key)
     if o then
       print('reusing socket with key: ' .. self.key)
@@ -92,13 +94,20 @@ function tcpT:connect(addr, port)
 end
 
 function tcpT:setkeepalive(timeout, size)
+  print('setkeepalive ' .. timeout)
   self._keepalive = true
+  if timeout == nil then
+    timeout = pool.defaultTimeout
+  elseif timeout == 0 then
+    timeout = 3600 * 24 * 365 -- 1 year
+  else
+    timeout = timeout / 1000 -- ms to s
+  end
   if not pool then
     pool = Pool(size)
   end
   local timeout = pool.ioloop:add_timeout(
-    pool.ioloop.time() + (timeout or pool.defaultTimeout) / 1000,
-    function()
+    pool.ioloop.time() + timeout, function()
       pool:delete(self.key)
     end)
   pool:put(self.key, self.stream, timeout)
