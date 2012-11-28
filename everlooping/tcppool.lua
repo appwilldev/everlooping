@@ -74,14 +74,11 @@ end
 function tcpT:connect(addr, port)
   self.key = hash_key(addr, port)
   if not pool then
-    print('not pooled')
     self.stream._reused = 0
     return baseTcpT.connect(self, addr, port)
   else
-    print(pool)
     local o = pool:getout(self.key)
     if o then
-      print('reusing socket with key: ' .. self.key)
       self.stream = o[1]
       pool.ioloop:remove_timeout(o[2])
       self.stream._reused = self.stream._reused + 1
@@ -94,10 +91,9 @@ function tcpT:connect(addr, port)
 end
 
 function tcpT:setkeepalive(timeout, size)
-  print('setkeepalive ' .. timeout)
   self._keepalive = true
   if timeout == nil then
-    timeout = pool.defaultTimeout
+    timeout = PoolT.defaultTimeout
   elseif timeout == 0 then
     timeout = 3600 * 24 * 365 -- 1 year
   else

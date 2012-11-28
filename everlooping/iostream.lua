@@ -45,9 +45,14 @@ end
 
 function IOStreamT:connect(address, callback)
   self._connecting = true
-  self._sock:connect(address)
-  self._connect_callback = callback
-  self:_add_io_state(self.OUT)
+  local ok, err = self._sock:connect(address)
+  if not ok and not err.INPROGRESS then
+    print{'iostream connect', ok, err}
+    self:_run_callback(callback, false, err)
+  else
+    self._connect_callback = callback
+    self:_add_io_state(self.OUT)
+  end
 end
 
 function IOStreamT:read_bytes(num_bytes, callback)
