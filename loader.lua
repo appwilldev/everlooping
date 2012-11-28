@@ -17,7 +17,7 @@ ngx.req = {
   end,
   get_uri_args = function()
     return {
-      macaddr = 'pureluatest5',
+      macaddr = 'xxx0',
     }
   end,
 }

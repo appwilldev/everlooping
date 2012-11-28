@@ -49,6 +49,9 @@ ctx = setmetatable({}, {
 
 null = {}
 header = {}
+socket = {
+  tcp = cosocket.tcp,
+}
 
 time = os.time
 ERR = 'ERROR'
