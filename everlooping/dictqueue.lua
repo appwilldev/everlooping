@@ -24,20 +24,9 @@ function dictqueue(deleter)
   return o
 end
 
-function dictqueueT:popleft()
-  if self._stop > self._start then
-    local k = self._data[self._start]
-    self._data[self._start] = nil
-    self._start = self._start + 1
-    if self._start == MAX_INDEX then
-      self._start = 0
-    end
-    local d = self._data[k]
-    self._data[k] = nil
-    return d
-  else
-    return nil
-  end
+function dictqueueT:removeleft()
+  local k = self._data[self._start]
+  self:delete(k)
 end
 
 function dictqueueT:length()
@@ -58,11 +47,14 @@ function dictqueueT:get(key)
 end
 
 function dictqueueT:set(key, val)
-  self._data[self._stop] = key
-  if not self._data[key] then
-    print('new socket pooled')
+  local d = self._data[key]
+  if d then
+    self._data[d[1]] = nil
+  else
+    print('new socket pooled', key)
     print(self._data)
   end
+  self._data[self._stop] = key
   self._data[key] = {self._stop, val}
   self._stop = self._stop + 1
   if self._stop == MAX_INDEX then
@@ -73,8 +65,8 @@ end
 function dictqueueT:delete(key, isMoveOut)
   local d = self._data[key]
   self._data[key] = nil
-  self._data[d[1]] = nil
   self._data[d[1]] = self._data[self._start]
+  self._data[self._start] = nil
   self._start = self._start + 1
   if self._start == MAX_INDEX then
     self._start = 0

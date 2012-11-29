@@ -48,7 +48,7 @@ function PoolT:put(key, stream, timeout)
   self._busy_sockets:set(stream, nil)
   self._idle_sockets:set(key, {stream, timeout})
   if self._idle_sockets:length() + self._busy_sockets:length() > self.size then
-    self._idle_sockets:popleft()
+    self._idle_sockets:removeleft()
   end
 end
 
