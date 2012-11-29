@@ -3,7 +3,7 @@ local setmetatable = setmetatable
 --debugging stuff
 local _tostring = require('logging').tostring
 local print = function(...)
-  print(_tostring(...))
+  print(_tostring{...})
 end
 
 module('everlooping.dictqueue')
@@ -59,6 +59,10 @@ end
 
 function dictqueueT:set(key, val)
   self._data[self._stop] = key
+  if not self._data[key] then
+    print('new socket pooled')
+    print(self._data)
+  end
   self._data[key] = {self._stop, val}
   self._stop = self._stop + 1
   if self._stop == MAX_INDEX then
