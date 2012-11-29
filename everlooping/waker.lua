@@ -27,7 +27,7 @@ end
 function Waker:consume()
   while true do
     local data, err = self.pipe:read(buf, bufsize)
-    if not data then
+    if not data or #data ~= bufsize then
       break
     end
   end
