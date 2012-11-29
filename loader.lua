@@ -8,7 +8,7 @@ ngx.var = {
   HADDIT_APP_PATH = os.getenv('HADDIT_HOME') .. '/luasrc',
   HADDIT_CONFIG = os.getenv('PWD') .. '/conf/haddit.config',
   request_method = 'GET',
-  REQUEST_URI = '/new_device',
+  REQUEST_URI = '/haddit/warmup/start',
 }
 
 ngx.req = {
@@ -17,7 +17,6 @@ ngx.req = {
   end,
   get_uri_args = function()
     return {
-      macaddr = 'xxx0',
     }
   end,
 }

@@ -3,9 +3,7 @@ local setmetatable = setmetatable
 --debugging stuff
 local _tostring = require('logging').tostring
 local print = function(...)
-  for _, i in ipairs({...}) do
-    print(_tostring(i))
-  end
+  print(_tostring{...})
 end
 
 local cosocket = require('everlooping.cosocket')
@@ -41,15 +39,13 @@ function PoolT:getout(key)
   local stream = self._idle_sockets:get(key)
   if stream then
     self._idle_sockets:delete(key, true)
-    self._busy_sockets:set(stream, true)
+    self._busy_sockets:set(stream[1], true)
     return stream
   end
 end
 
 function PoolT:put(key, stream, timeout)
-  if self._busy_sockets:get(stream) then
-    self._busy_sockets:set(stream, nil)
-  end
+  self._busy_sockets:set(stream, nil)
   self._idle_sockets:set(key, {stream, timeout})
   if self._idle_sockets:length() + self._busy_sockets:length() > self.size then
     self._idle_sockets:popleft()
@@ -85,6 +81,7 @@ function tcpT:connect(addr, port)
       return true
     else
       self.stream._reused = 0
+      print('New connection is made')
       return baseTcpT.connect(self, addr, port)
     end
   end
