@@ -105,12 +105,13 @@ end
 
 function IOLoop:add_timeout(deadline, callback)
   local timeout = {callback=callback}
-  self._timeouts:push(deadline, timeout)
-  return timeout
+  return self._timeouts:push(deadline, timeout)
+  -- return timeout
 end
 
 function IOLoop:remove_timeout(timeout)
-  timeout.callback = nil
+  -- timeout.callback = nil
+  self._timeouts:remove(timeout)
 end
 
 function IOLoop:start()

@@ -2,6 +2,8 @@ local setmetatable = setmetatable
 local insert = table.insert
 local floor = math.floor
 
+local util = require('everlooping.util')
+
 module('everlooping.pqueue')
 
 local PQueueT = {}
@@ -18,6 +20,7 @@ function PQueueT:push(value, data)
   local d = {value, data}
   insert(self, d)
   self:_heapifyup(#self)
+  return d
 end
 
 function PQueueT:_heapifyup(n)
@@ -44,6 +47,16 @@ function PQueueT:pop()
   self[#self] = nil
   self:_heapifydown(1)
   return data
+end
+
+function PQueueT:remove(d)
+  local index = util.table_index(self, d)
+  if index then
+    local new = self[#self]
+    self[index] = new
+    self[#self] = nil
+    self:_heapifydown(index)
+  end
 end
 
 function PQueueT:_heapifydown(n)

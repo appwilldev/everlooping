@@ -95,3 +95,11 @@ function flatten_table(t)
   end
   return s
 end
+
+function table_index(t, value)
+  for i, v in ipairs(t) do
+    if v == value then
+      return i
+    end
+  end
+end
