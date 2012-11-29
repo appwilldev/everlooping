@@ -5,6 +5,7 @@ local _tostring = require('logging').tostring
 local print = function(...)
   print(_tostring{...})
 end
+local debug = debug
 
 local cosocket = require('everlooping.cosocket')
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
@@ -36,11 +37,13 @@ function Pool(size, ioloop)
 end
 
 function PoolT:getout(key)
-  local stream = self._idle_sockets:get(key)
-  if stream then
+  local d = self._idle_sockets:get(key)
+  if d then
     self._idle_sockets:delete(key, true)
-    self._busy_sockets:set(stream[1], true)
-    return stream
+    self._busy_sockets:set(d[1], true)
+    return d
+  else
+    -- print('Get out failed', self._idle_sockets)
   end
 end
 
@@ -87,7 +90,7 @@ function tcpT:connect(addr, port)
       self.stream._reused = self.stream._reused + 1
       return true
     else
-      print('New connection is made')
+      print('New connection is made', addr, port)
       new_socket(self)
       self.stream._reused = 0
       return baseTcpT.connect(self, addr, port)

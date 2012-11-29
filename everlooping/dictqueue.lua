@@ -49,10 +49,8 @@ end
 function dictqueueT:set(key, val)
   local d = self._data[key]
   if d then
-    self._data[d[1]] = nil
-  else
-    print('new socket pooled', key)
-    print(self._data)
+    -- already there, do nothing
+    return
   end
   self._data[self._stop] = key
   self._data[key] = {self._stop, val}
@@ -65,8 +63,13 @@ end
 function dictqueueT:delete(key, isMoveOut)
   local d = self._data[key]
   self._data[key] = nil
+  local other_key = self._data[self._start]
   self._data[d[1]] = self._data[self._start]
   self._data[self._start] = nil
+  if self._data[other_key] then
+    self._data[other_key][1] = d[1]
+  end
+
   self._start = self._start + 1
   if self._start == MAX_INDEX then
     self._start = 0
