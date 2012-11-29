@@ -62,14 +62,21 @@ setmetatable(tcpT, cosocket.tcpT)
 baseTcpT = cosocket.tcpT
 
 function tcp()
-  local o = cosocket.tcp()
+  local o = {}
   setmetatable(o, tcpT)
   return o
+end
+
+local function new_socket(self)
+  local new = cosocket.tcp()
+  self._sock = new._sock
+  self.stream = new.stream
 end
 
 function tcpT:connect(addr, port)
   self.key = hash_key(addr, port)
   if not pool then
+    new_socket(self)
     self.stream._reused = 0
     return baseTcpT.connect(self, addr, port)
   else
@@ -80,8 +87,9 @@ function tcpT:connect(addr, port)
       self.stream._reused = self.stream._reused + 1
       return true
     else
-      self.stream._reused = 0
       print('New connection is made')
+      new_socket(self)
+      self.stream._reused = 0
       return baseTcpT.connect(self, addr, port)
     end
   end
