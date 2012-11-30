@@ -2,6 +2,7 @@ local setmetatable = setmetatable
 
 --debugging stuff
 local _tostring = require('logging').tostring
+local pure_print = print
 local print = function(...)
   print(_tostring{...})
 end
@@ -37,13 +38,10 @@ function Pool(size, ioloop)
 end
 
 function PoolT:getout(key)
-  local d = self._idle_sockets:get(key)
+  local d = self._idle_sockets:getout(key)
   if d then
-    self._idle_sockets:delete(key, true)
     self._busy_sockets:set(d[1], true)
     return d
-  else
-    -- print('Get out failed', self._idle_sockets)
   end
 end
 
@@ -55,8 +53,9 @@ function PoolT:put(key, stream, timeout)
   end
 end
 
-function PoolT:delete(key)
-  self._idle_sockets:delete(key)
+function PoolT:delete(key, value)
+  print('deleting because someone asked')
+  self._idle_sockets:delete(key, value)
 end
 
 local tcpT = {}
@@ -112,7 +111,8 @@ function tcpT:setkeepalive(timeout, size)
   end
   local timeout = pool.ioloop:add_timeout(
     pool.ioloop.time() + timeout, function()
-      pool:delete(self.key)
+      print('deleting because of timeout')
+      pool:delete(self.key, self.stream)
     end)
   pool:put(self.key, self.stream, timeout)
 end

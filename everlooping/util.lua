@@ -96,9 +96,12 @@ function flatten_table(t)
   return s
 end
 
-function table_index(t, value)
+function table_index(t, value, eqfunc)
+  if not eqfunc then
+    eqfunc = function(a, b) return a == b end
+  end
   for i, v in ipairs(t) do
-    if v == value then
+    if eqfunc(v, value) then
       return i
     end
   end
