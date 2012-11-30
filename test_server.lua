@@ -21,7 +21,7 @@ local print = function(...)
 end
 
 
-local cosocket = require('everlooping.tcppool')
+local cosocket = require('everlooping.cosocket')
 local ioloop = require('everlooping.ioloop')
 
 local s = cosocket.tcp()
