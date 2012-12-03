@@ -26,7 +26,7 @@ end
 -- for debug
 local _tostring = require('logging').tostring
 local print = function(...)
-  print(_tostring(...))
+  print(_tostring{...})
 end
 local debug = debug
 
