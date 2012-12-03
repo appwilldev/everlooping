@@ -1,5 +1,7 @@
 #!/usr/bin/env luajit
 
+local S = require "syscall"
+
 --debugging stuff
 local string_sub = string.sub
 local string_lower  = string.lower
@@ -27,7 +29,11 @@ local ioloop = require('everlooping.ioloop')
 local s = cosocket.tcp()
 assert(s:bind('*', 9009))
 assert(s:listen(128))
+
+S.fork()
+
 s:accept(function(s, a)
+  local mypid = S.getpid()
   print('client %s:%d connected.', a[1], a[2])
   while true do
     local l, err = s:receive('*l')
@@ -36,7 +42,7 @@ s:accept(function(s, a)
       if l == 'quit' then
         break
       end
-      s:send(l .. '\n')
+      s:send('[' .. mypid .. '] ' .. l .. '\n')
     else
       print(l, err)
       break

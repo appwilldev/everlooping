@@ -41,7 +41,6 @@ local ioloop
 function tcp(sock)
   local o = {}
   o._sock = sock or assert(S.socket("inet", "stream, nonblock"))
-  o.stream = IOStream(o._sock)
   setmetatable(o, tcpT)
   return o
 end
@@ -116,7 +115,9 @@ end
 local function _handle_accept(onaccept)
   return function(conn)
     register(function()
-      onaccept(tcp(conn.fd), {conn.addr.addr, conn.addr.port})
+      local s = tcp(conn.fd)
+      s:_wrap_stream()
+      onaccept(s, {conn.addr.addr, conn.addr.port})
     end)
   end
 end
@@ -125,7 +126,12 @@ function tcpT:accept(onaccept)
   netutil.add_accept_handler(self._sock, _handle_accept(onaccept))
 end
 
+function tcpT:_wrap_stream()
+  self.stream = IOStream(self._sock)
+end
+
 function tcpT:connect(addr, port)
+  self:_wrap_stream()
   self:_adjust_timeout()
   local ip = util.simpleDNSQuery(addr)
   if not ip then

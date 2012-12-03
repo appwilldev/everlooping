@@ -1,6 +1,5 @@
 #!/usr/bin/env luajit
 
-local assert = assert
 local setmetatable = setmetatable
 local type = type
 local ipairs = ipairs
@@ -16,6 +15,11 @@ local ffi = require('ffi')
 local Waker = require('everlooping.waker').Waker
 local PQueue = require('everlooping.pqueue').PQueue
 local util = require('everlooping.util')
+
+local oldassert = assert
+local function assert(c, s)
+  return oldassert(c, tostring(s)) -- annoyingly, assert does not call tostring!
+end
 
 --debugging stuff
 local debug = debug
