@@ -4,10 +4,12 @@ local setmetatable = setmetatable
 local type = type
 local ipairs = ipairs
 local tostring = tostring
+local require = require
 local _print = print
 local os = os
 local cosocket = require('everlooping.tcppool')
 local write = function(s) io.stdout:write(s) end
+local ffi = require('ffi')
 
 module('ngx')
 
@@ -64,6 +66,17 @@ md5 = nil
 location = {
   capture = function() end,
 }
+
+sha1_bin = function(s)
+  local sha1 = require('resty.sha1')
+  local L = ffi.load('crypto', true)
+  sha1_bin = function(s)
+    local sha1ctx = sha1:new()
+    sha1ctx:update(s)
+    return sha1ctx:final()
+  end
+  return sha1_bin(s)
+end
 
 sleep = cosocket.sleep
 log = function(...)
