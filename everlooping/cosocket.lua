@@ -118,6 +118,7 @@ local function _handle_accept(onaccept)
       local s = tcp(conn.fd)
       s:_wrap_stream()
       onaccept(s, {conn.addr.addr, conn.addr.port})
+      s:close()
     end)
   end
 end
