@@ -82,21 +82,25 @@ sleep = cosocket.sleep
 log = function(...)
   _print('LOG: ', ...)
 end
-print = function(t)
-  if type(t) == 'table' then
-    for _, i in ipairs(t) do
-      if type(i) == 'table' then
-        print(i)
-      else
-        write(i)
+print = function(...)
+  local arg = {...}
+  for _, t in ipairs(arg) do
+    if type(t) == 'table' then
+      for _, i in ipairs(t) do
+        local ty = type(i)
+        if ty == 'table' then
+          print(i)
+        else
+          write(tostring(i))
+        end
       end
+    else
+      write(tostring(t))
     end
-  else
-    write(tostring(t))
   end
 end
-say = function(t)
-  print(t)
+say = function(...)
+  print(...)
   _print()
 end
 eof = function() _print('EOF') end
