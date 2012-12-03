@@ -8,7 +8,7 @@ ngx.var = {
   HADDIT_APP_PATH = os.getenv('HADDIT_HOME') .. '/luasrc',
   HADDIT_CONFIG = os.getenv('PWD') .. '/conf/haddit.config',
   request_method = 'GET',
-  REQUEST_URI = '/haddit/warmup/start',
+  REQUEST_URI = arg[1] or error('no target uri given'),
 }
 
 ngx.req = {
@@ -28,9 +28,10 @@ local L2 = ffi.load('ngxc', true)
 
 local cosocket = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
+local entryfile = os.getenv('MOOCHINE_HOME') .. '/luasrc/mch_content.lua'
 
 cosocket.register(function()
-  assert(loadfile(arg[1]))()
+  assert(loadfile(entryfile))()
 
   print('Headers:')
   for k, v in pairs(ngx.header) do
