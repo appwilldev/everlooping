@@ -136,7 +136,7 @@ function tcpT:connect(addr, port)
   self.stream:connect(sa, partial(_resume_me, coroutine.running()))
   local ok, err = coroutine.yield()
   self:_not_timedout()
-  return ok, err
+  return ok, tostring(err)
 end
 
 function tcpT:receive(pattern)
