@@ -115,6 +115,7 @@ function tcpT:setkeepalive(timeout, size)
       pool:delete(self.key, self.stream)
     end)
   pool:put(self.key, self.stream, timeout)
+  return 1
 end
 
 function tcpT:close()
