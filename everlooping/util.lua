@@ -106,3 +106,9 @@ function table_index(t, value, eqfunc)
     end
   end
 end
+
+function time()
+  -- high resolution time function
+  local dt = S.gettimeofday()
+  return dt.sec + dt.usec / 1000000
+end

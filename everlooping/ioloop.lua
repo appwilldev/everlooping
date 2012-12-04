@@ -58,7 +58,7 @@ function IOLoop:new(opts)
   IOLoop._initialized = true
   opts = opts or {}
   local o = {}
-  o.time = opts.time or os.time
+  o.time = opts.time or util.time
   o._handers = {}
   o._fds = {}
   o._epoll_fd = assert(S.epoll_create())
