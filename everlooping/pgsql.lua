@@ -89,6 +89,8 @@ function pgsqlT:connect(conn_string)
 end
 
 function pgsqlT:query(q)
+  -- on success, return true if no data is fetched back, or a table with
+  -- fields "resultset" and "fieldnames"
   local conn = self._conn
   local res = P.PQexec(conn, q)
   local st = P.PQresultStatus(res)
