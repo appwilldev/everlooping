@@ -128,7 +128,9 @@ function tcpT:accept(onaccept)
 end
 
 function tcpT:_wrap_stream()
-  self.stream = IOStream(self._sock)
+  if not self.stream then
+    self.stream = IOStream(self._sock)
+  end
 end
 
 function tcpT:connect(addr, port)

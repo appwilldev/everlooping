@@ -72,6 +72,7 @@ end
 local function new_socket(self)
   local new = cosocket.tcp()
   self._sock = new._sock
+  new:_wrap_stream()
   self.stream = new.stream
 end
 
