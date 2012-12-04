@@ -85,6 +85,11 @@ function pgsqlT:connect(conn_string)
   if ret then
     self._ioloop:update_handler(self._fd, '')
   end
+
+  if P.PQsetnonblocking(conn, 1) ~= 0 then
+    ret = nil
+    err = ffi.string(P.PQerrorMessage(conn))
+  end
   return ret, err
 end
 
@@ -92,9 +97,58 @@ function pgsqlT:query(q)
   -- on success, return true if no data is fetched back, or a table with
   -- fields "resultset" and "fieldnames"
   local conn = self._conn
-  local res = P.PQexec(conn, q)
-  local st = P.PQresultStatus(res)
   local ret, err
+  local rt = P.PQsendQuery(conn, q)
+  if rt ~= 1 then
+    err = ffi.string(P.PQerrorMessage(conn))
+    return ret, err
+  end
+
+  local res
+  self._ioloop:update_handler(self._fd, 'in')
+  while true do
+    coroutine.yield()
+    local st = P.PQconnectPoll(conn)
+    if st == P.PGRES_POLLING_WRITING then
+      state = 'out'
+    elseif st == P.PGRES_POLLING_READING then
+      state = 'in'
+    elseif st == P.PGRES_POLLING_OK then
+    elseif st == P.PGRES_POLLING_FAILED then
+      err = ffi.string(P.PQerrorMessage(conn))
+      break
+    else
+      err = "shouldn't reach here"
+      break
+    end
+
+    if P.PQconsumeInput(conn) ~= 1 then
+      err = ffi.string(P.PQerrorMessage(conn))
+      break
+    end
+
+    local r
+    while P.PQisBusy(conn) == 0 do
+      -- returning 0 means we won't block
+      r = P.PQgetResult(conn)
+      if r == nil then
+        -- query end, returned NULL
+        break
+      else
+        res = r
+      end
+    end
+    if r == nil then
+      break
+    end
+    self._ioloop:update_handler(self._fd, state)
+  end
+  self._ioloop:update_handler(self._fd, '')
+  if err then
+    return ret, err
+  end
+
+  local st = P.PQresultStatus(res)
   if st == P.PGRES_EMPTY_QUERY then
     ret = true
   elseif st == P.PGRES_TUPLES_OK then
