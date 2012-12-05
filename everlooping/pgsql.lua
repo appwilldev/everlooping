@@ -108,7 +108,6 @@ function pgsqlT:query(q)
   self._ioloop:update_handler(self._fd, 'in')
   while true do
     local state
-    print('yielding')
     coroutine.yield()
     if P.PQconsumeInput(conn) ~= 1 then
       err = ffi.string(P.PQerrorMessage(conn))

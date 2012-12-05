@@ -39,9 +39,9 @@ function request(host, port, data)
 end
 
 cosocket.register(function()
-  for i=0, 200 do
+  for i=0, 40 do
     print(util.time() .. ': moew~')
-    cosocket.sleep(0.1)
+    cosocket.sleep(0.01)
   end
 end)
 
@@ -158,12 +158,19 @@ cosocket.register(function()
   end
 
   -- ok, err = p:query("select * from account_entity_2 limit 4")
-  print('insert begin')
+  print(util.time(), 'delete begin')
+  ok, err = p:query("delete from msg_entity where id < 0")
+  if not ok then
+    write(err)
+  end
+  print(util.time(), 'delete end')
+
+  print(util.time(), 'insert begin')
   ok, err = p:query("insert into msg_entity values " .. data)
   if not ok then
     write(err)
   end
-  print('insert end')
+  print(util.time(), 'insert end')
 
   p:close()
   print('Request complete.')
