@@ -107,21 +107,9 @@ function pgsqlT:query(q)
   local res
   self._ioloop:update_handler(self._fd, 'in')
   while true do
+    local state
+    print('yielding')
     coroutine.yield()
-    local st = P.PQconnectPoll(conn)
-    if st == P.PGRES_POLLING_WRITING then
-      state = 'out'
-    elseif st == P.PGRES_POLLING_READING then
-      state = 'in'
-    elseif st == P.PGRES_POLLING_OK then
-    elseif st == P.PGRES_POLLING_FAILED then
-      err = ffi.string(P.PQerrorMessage(conn))
-      break
-    else
-      err = "shouldn't reach here"
-      break
-    end
-
     if P.PQconsumeInput(conn) ~= 1 then
       err = ffi.string(P.PQerrorMessage(conn))
       break
@@ -141,7 +129,6 @@ function pgsqlT:query(q)
     if r == nil then
       break
     end
-    self._ioloop:update_handler(self._fd, state)
   end
   self._ioloop:update_handler(self._fd, '')
   if err then
@@ -182,7 +169,7 @@ function pgsqlT:query(q)
     err = "Server is speaking an alien language: " .. ffi.string(PQerrorMessage(conn))
   elseif st == P.PGRES_NONFATAL_ERROR or
     st == P.PGRES_FATAL_ERROR then
-    err = "PQexec failed: " .. ffi.string(P.PQerrorMessage(conn))
+    err = "query failed: " .. ffi.string(P.PQerrorMessage(conn))
   else
     err = "shouldn't reach here"
   end
