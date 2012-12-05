@@ -18,7 +18,7 @@ function showResult(res)
     end
     write('\n' .. string.rep('=', 15 * #ret.fieldnames) .. '\n')
     for _, row in ipairs(ret.resultset) do
-      for _, val in ipairs(row) do
+      for _, val in pairs(row) do
         write(string.format('%-15s', val))
       end
       write('\n')

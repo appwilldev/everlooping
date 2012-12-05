@@ -63,7 +63,7 @@ local function _convert_results(res, conn)
     for i=0, rows-1 do
       local row = {}
       for j=0, n-1 do
-        table_insert(row, ffi.string(P.PQgetvalue(res, i, j)))
+        row[fname[j+1]] = ffi.string(P.PQgetvalue(res, i, j))
       end
       table_insert(data, row)
     end
