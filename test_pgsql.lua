@@ -11,6 +11,22 @@ local PQ = require('everlooping.pgsql')
 local cosocket = require('everlooping.cosocket')
 local ioloop = require('everlooping.ioloop')
 
+function showResult(res)
+  for _, ret in ipairs(res) do
+    for _, name in ipairs(ret.fieldnames) do
+      write(string.format('%-15s', name))
+    end
+    write('\n' .. string.rep('=', 15 * #ret.fieldnames) .. '\n')
+    for _, row in ipairs(ret.resultset) do
+      for _, val in ipairs(row) do
+        write(string.format('%-15s', val))
+      end
+      write('\n')
+    end
+    write('\n')
+  end
+end
+
 cosocket.register(function()
   print('request thread:', coroutine.running())
   write('\n')
@@ -20,39 +36,19 @@ cosocket.register(function()
     write(err)
   end
 
-  ok, err = p:query('select * from msg_entity limit 2')
+  ok, err = p:query('select * from msg_entity limit 2; select * from account_entity limit 3')
   if not ok then
     write(err)
   else
-    for _, name in ipairs(ok.fieldnames) do
-      write(string.format('%-15s', name))
-    end
-    write('\n' .. string.rep('=', 15 * #ok.fieldnames) .. '\n')
-    for _, row in ipairs(ok.resultset) do
-      for _, val in ipairs(row) do
-        write(string.format('%-15s', val))
-      end
-      write('\n')
-    end
+    showResult(ok)
   end
-  write('\n')
 
   ok, err = p:query('select 1+3 * 7')
   if not ok then
     write(err)
   else
-    for _, name in ipairs(ok.fieldnames) do
-      write(string.format('%-15s', name))
-    end
-    write('\n' .. string.rep('=', 15 * #ok.fieldnames) .. '\n')
-    for _, row in ipairs(ok.resultset) do
-      for _, val in ipairs(row) do
-        write(string.format('%-15s', val))
-      end
-      write('\n')
-    end
+    showResult(ok)
   end
-  write('\n')
 
   ok, err = p:query("copy (select * from msg_entity order by id) to '/tmp/testdata'")
   if not ok then

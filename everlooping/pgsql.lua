@@ -2,8 +2,11 @@
 
 local print = print
 local setmetatable = setmetatable
+local type = type
+local ipairs = ipairs
 local coroutine = coroutine
 local table_insert = table.insert
+local string_rep = string.rep
 
 local cosocket = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
@@ -41,6 +44,49 @@ local function _resume_me(co, ...)
     print('Error!', err)
     print('failed coroutine is:', co)
   end
+end
+
+local function _convert_results(res, conn)
+  local st = P.PQresultStatus(res)
+  if st == P.PGRES_EMPTY_QUERY then
+    ret = true
+  elseif st == P.PGRES_TUPLES_OK then
+    local data = {}
+    local n = P.PQnfields(res)
+    local rows = P.PQntuples(res)
+
+    local fname = {}
+    for j=0, n-1 do
+      table_insert(fname, ffi.string(P.PQfname(res, j)))
+    end
+
+    for i=0, rows-1 do
+      local row = {}
+      for j=0, n-1 do
+        table_insert(row, ffi.string(P.PQgetvalue(res, i, j)))
+      end
+      table_insert(data, row)
+    end
+
+    ret = {
+      fieldnames = fname,
+      resultset = data,
+    }
+  elseif st == P.PGRES_COPY_OUT or
+    st == P.PGRES_COPY_IN or
+    st == P.PGRES_COPY_BOTH or
+    st == P.PGRES_COMMAND_OK then
+    ret = true
+  elseif st == P.PGRES_BAD_RESPONSE then
+    err = "Server is speaking an alien language: " .. ffi.string(PQerrorMessage(conn))
+  elseif st == P.PGRES_NONFATAL_ERROR or
+    st == P.PGRES_FATAL_ERROR then
+    err = "query failed: " .. ffi.string(P.PQerrorMessage(conn))
+  else
+    err = "shouldn't reach here"
+  end
+  P.PQclear(res)
+  return ret, err
 end
 
 function pgsqlT:connect(conn_string)
@@ -94,8 +140,12 @@ function pgsqlT:connect(conn_string)
 end
 
 function pgsqlT:query(q)
-  -- on success, return true if no data is fetched back, or a table with
-  -- fields "resultset" and "fieldnames"
+  -- on success, return someting true if no data is fetched back, or a list of
+  -- table with fields "resultset" and "fieldnames"
+  --
+  -- on error, partial result is abandoned and err is set to a string descibing
+  -- the one of the errors
+
   local conn = self._conn
   local ret, err
   local rt = P.PQsendQuery(conn, q)
@@ -104,7 +154,7 @@ function pgsqlT:query(q)
     return ret, err
   end
 
-  local res
+  local res = {}
   self._ioloop:update_handler(self._fd, 'in')
   while true do
     local state
@@ -122,7 +172,7 @@ function pgsqlT:query(q)
         -- query end, returned NULL
         break
       else
-        res = r
+        table_insert(res, r)
       end
     end
     if r == nil then
@@ -134,45 +184,21 @@ function pgsqlT:query(q)
     return ret, err
   end
 
-  local st = P.PQresultStatus(res)
-  if st == P.PGRES_EMPTY_QUERY then
-    ret = true
-  elseif st == P.PGRES_TUPLES_OK then
-    local data = {}
-    local n = P.PQnfields(res)
-    local rows = P.PQntuples(res)
-
-    local fname = {}
-    for j=0, n-1 do
-      table_insert(fname, ffi.string(P.PQfname(res, j)))
+  ret = {}
+  for _, v in ipairs(res) do
+    local subret, suberr = _convert_results(v, conn)
+    if suberr then
+      err = suberr
+      print(string_rep('=', 33) .. ' QUERY ERROR: ' .. string_rep('=', 33))
+      print(suberr:sub(1, -2))
+      print(string_rep('=', 80))
+    else
+      table_insert(ret, subret)
     end
-
-    for i=0, rows-1 do
-      local row = {}
-      for j=0, n-1 do
-        table_insert(row, ffi.string(P.PQgetvalue(res, i, j)))
-      end
-      table_insert(data, row)
-    end
-
-    ret = {
-      fieldnames = fname,
-      resultset = data,
-    }
-  elseif st == P.PGRES_COPY_OUT or
-    st == P.PGRES_COPY_IN or
-    st == P.PGRES_COPY_BOTH or
-    st == P.PGRES_COMMAND_OK then
-    ret = true
-  elseif st == P.PGRES_BAD_RESPONSE then
-    err = "Server is speaking an alien language: " .. ffi.string(PQerrorMessage(conn))
-  elseif st == P.PGRES_NONFATAL_ERROR or
-    st == P.PGRES_FATAL_ERROR then
-    err = "query failed: " .. ffi.string(P.PQerrorMessage(conn))
-  else
-    err = "shouldn't reach here"
   end
-  P.PQclear(res)
+  if err then
+    ret = nil
+  end
   return ret, err
 end
 
