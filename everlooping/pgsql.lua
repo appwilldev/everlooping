@@ -12,6 +12,7 @@ local cosocket = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 local util = require('everlooping.util')
+local parse = require('everlooping.pquriparse').parse
 local partial = util.partial
 
 local S = require('syscall')
@@ -90,7 +91,7 @@ local function _convert_results(res, conn)
 end
 
 function pgsqlT:connect(conn_string)
-  local conn = P.PQconnectStart(conn_string)
+  local conn = P.PQconnectStart(parse(conn_string))
   if conn == nil then
     return nil, 'cannot allocate memory'
   end
@@ -140,7 +141,7 @@ function pgsqlT:connect(conn_string)
 end
 
 function pgsqlT:query(q)
-  -- on success, return someting true if no data is fetched back, or a list of
+  -- on success, return something true if no data is fetched back, or a list of
   -- table with fields "resultset" and "fieldnames"
   --
   -- on error, partial result is abandoned and err is set to a string descibing

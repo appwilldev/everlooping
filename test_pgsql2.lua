@@ -49,7 +49,7 @@ cosocket.register(function()
   print('request thread:', coroutine.running())
   write('\n')
   p = PQ.pgsql()
-  local ok, err = p:connect('dbname=haddit_dev')
+  local ok, err = p:connect('postgres://postgres:@localhost/haddit_dev')
   if not ok then
     write(err)
   end

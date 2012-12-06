@@ -105,3 +105,5 @@ say = function(...)
 end
 eof = function() _print('EOF') end
 exit = function(n) _print('Exit with ' .. n) end
+
+everlooping = true
