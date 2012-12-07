@@ -15,6 +15,7 @@ local ffi = require('ffi')
 local Waker = require('everlooping.waker').Waker
 local PQueue = require('everlooping.pqueue').PQueue
 local util = require('everlooping.util')
+local partial = util.partial
 
 local oldassert = assert
 local function assert(c, s)
@@ -65,6 +66,8 @@ function IOLoop:new(opts)
   o._stopped = false
   o._callbacks = {}
   o._timeouts = PQueue()
+  o._sig_handlers = {}
+  o._sigfd = -1
 
   self.__index = self
   setmetatable(o, self)
@@ -94,11 +97,66 @@ function IOLoop:remove_handler(fd)
   self:_may_auto_stop()
 end
 
+function IOLoop:_on_signal()
+  local sig = t.signalfd_siginfo()
+  S.read(self._sigfd, sig, 128)
+  self._sig_handlers[sig.signo](sig)
+end
+
+function IOLoop:add_signal_handler(sig, handler)
+  --return nil, err on error
+  local signo = c.SIG[sig]
+  if not signo then
+    return nil, 'bad signal name'
+  end
+  self._sig_handlers[signo] = handler
+  local sigset = assert(S.sigprocmask('block', sig))
+  sigset:add(signo)
+  local fd = assert(S.signalfd(sigset, 'nonblock', self._sigfd))
+  fd:nogc()
+  self._sigfd = getfd(fd)
+  if not self._fds[self._sigfd] then
+    self:add_handler(self._sigfd, partial(self._on_signal, self), 'in')
+  end
+  return true
+end
+
+function IOLoop:remove_signal_handler(sig)
+  --return nil, err on error
+  local signo = c.SIG[sig]
+  if not signo then
+    return nil, 'bad signal name'
+  end
+  if self._sigfd < 0 then
+    return nil, 'nothing to remove'
+  end
+  self._sig_handlers[signo] = nil
+  local sigset = assert(S.sigprocmask('unblock', sig))
+  sigset:del(signo)
+  if sigset.isemptyset then
+    self:_close_sigfd()
+  else
+    local fd = assert(S.signalfd(sigset, 'nonblock', self._sigfd))
+    fd:nogc()
+    self._sigfd = getfd(fd)
+  end
+  return true
+end
+
+function IOLoop:_close_sigfd()
+  self:remove_handler(self._sigfd)
+  S.close(self._sigfd)
+  self._sigfd = -1
+end
+
 function IOLoop:_may_auto_stop()
-  if util.table_length(self._fds) == 1 and #self._timeouts == 0 then
-    self:add_callback(function()
-      self:stop()
-    end)
+  if #self._timeouts == 0 then
+    local nfds = util.table_length(self._fds)
+    if nfds == 1 or (nfds == 2 and self._sigfd >= 0) then
+      self:add_callback(function()
+        self:stop()
+      end)
+    end
   end
 end
 
@@ -176,6 +234,9 @@ function IOLoop:stop()
 end
 
 function IOLoop:close()
+  if self._sigfd >= 0 then
+    self:_close_sigfd()
+  end
   self:remove_handler(self._waker:fileno())
   self._waker:close()
   self._epoll_fd:close()
