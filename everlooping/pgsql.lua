@@ -8,7 +8,7 @@ local coroutine = coroutine
 local table_insert = table.insert
 local string_rep = string.rep
 
-local cosocket = require('everlooping.tcppool')
+local tcppool = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 local util = require('everlooping.util')
@@ -23,6 +23,12 @@ local oldassert = assert
 function assert(c, s)
   return oldassert(c, tostring(s)) -- annoyingly, assert does not call tostring!
 end
+
+local _tostring = require('logging').tostring
+local print = function(...)
+  print(_tostring{...})
+end
+
 require('everlooping.pgsql_header')
 
 module(...)
@@ -90,17 +96,50 @@ local function _convert_results(res, conn)
   return ret, err
 end
 
+function pgsqlT:_get_conn_from_pool()
+  if not tcppool.pool then
+    return nil
+  end
+  return tcppool.pool:getout(self.key)
+end
+
+function _close_connection(conn, ioloop, fd)
+  if fd >= 0 then
+    ioloop:remove_handler(fd)
+  end
+  if conn then
+    P.PQfinish(conn[1])
+  end
+end
+
 function pgsqlT:connect(conn_string)
-  local conn = P.PQconnectStart(parse(conn_string))
+  if not self._ioloop then
+    self._ioloop = defaultIOLoop()
+  end
+  self.key = conn_string
+
+  local conn
+  local o = self:_get_conn_from_pool(conn_string)
+  if o then
+    conn = o[1]
+    print('resuing pgsql connection.', conn)
+    tcppool.pool.ioloop:remove_timeout(o[2])
+    conn._reused = conn._reused + 1
+    self._conn = conn
+    self._fd = P.PQsocket(conn[1])
+    return true, nil
+  end
+
+  conn = P.PQconnectStart(parse(conn_string))
   if conn == nil then
     return nil, 'cannot allocate memory'
   end
 
-  if not self._ioloop then
-    self._ioloop = defaultIOLoop()
-  end
-  self._conn = conn
   self._fd = P.PQsocket(conn)
+  self._conn = {
+    conn, _reused=0, 
+    close = partial(_close_connection, self._conn, self._ioloop, self._fd),
+  }
   if P.PQstatus(conn) == P.CONNECTION_BAD then
     local err = ffi.string(P.PQerrorMessage(conn))
     self:close()
@@ -147,7 +186,7 @@ function pgsqlT:query(q)
   -- on error, partial result is abandoned and err is set to a string descibing
   -- the one of the errors
 
-  local conn = self._conn
+  local conn = self._conn[1]
   local ret, err
   local rt = P.PQsendQuery(conn, q)
   if rt ~= 1 then
@@ -203,13 +242,39 @@ function pgsqlT:query(q)
   return ret, err
 end
 
+function pgsqlT:setkeepalive(timeout, size)
+  self._keepalive = true
+  if timeout == nil then
+    timeout = tcppool.PoolT.defaultTimeout
+  elseif timeout == 0 then
+    timeout = 3600 * 24 * 365 -- 1 year
+  else
+    timeout = timeout / 1000 -- ms to s
+  end
+  if not tcppool.pool then
+    tcppool.pool = tcppool.Pool(size)
+  end
+  local pool = tcppool.pool
+  local timeout = pool.ioloop:add_timeout(
+    pool.ioloop.time() + timeout, function()
+      print('deleting because of timeout')
+      pool:delete(self.key, self._conn)
+    end)
+  pool:put(self.key, self._conn, timeout)
+  return 1
+end
+
 function pgsqlT:close()
+  if self._keepalive then
+    return
+  end
+
   if self._fd >= 0 then
     self._ioloop:remove_handler(self._fd)
     self._fd = -1
   end
   if self._conn then
-    P.PQfinish(self._conn)
+    P.PQfinish(self._conn[1])
     self._conn = nil
   end
 end

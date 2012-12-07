@@ -62,6 +62,35 @@ cosocket.register(function()
   end
   print('end copying')
 
+  p:setkeepalive(2000)
+  p:close()
+
+  p = PQ.pgsql()
+  local ok, err = p:connect('postgres://postgres:@localhost/haddit_dev')
+  if not ok then
+    write(err)
+  end
+
+  ok, err = p:query("select * from account_entity_2 limit 4")
+  if not ok then
+    write(err)
+  end
+  print(ok)
+
+  p:setkeepalive(2000)
+  cosocket.sleep(2)
+
+  p = PQ.pgsql()
+  local ok, err = p:connect('postgres://postgres:@localhost/haddit_dev')
+  if not ok then
+    write(err)
+  end
+
+  ok, err = p:query("select * from account_entity_2 limit 4")
+  if not ok then
+    write(err)
+  end
+  print(ok)
   p:close()
   print('Request complete.')
 end)
