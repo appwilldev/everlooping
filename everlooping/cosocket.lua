@@ -1,6 +1,5 @@
 #!/usr/bin/env luajit
 
-local assert = assert
 local setmetatable = setmetatable
 local error = error
 local tonumber = tonumber
@@ -19,7 +18,7 @@ local IOStream = require('everlooping.iostream').IOStream
 local defaultIOLoop = require('everlooping.ioloop').defaultIOLoop
 
 local oldassert = assert
-function assert(c, s)
+local function assert(c, s)
   return oldassert(c, tostring(s)) -- annoyingly, assert does not call tostring!
 end
 

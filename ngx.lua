@@ -8,6 +8,7 @@ local require = require
 local _print = print
 local os = os
 local cosocket = require('everlooping.tcppool')
+local udp = require('everlooping.udp')
 local write = function(s) io.stdout:write(s) end
 local ffi = require('ffi')
 
@@ -57,6 +58,11 @@ null = {}
 header = {}
 socket = {
   tcp = cosocket.tcp,
+  udp = udp.udp,
+}
+
+re = {
+  sub = function() end,
 }
 
 time = os.time

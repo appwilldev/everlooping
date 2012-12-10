@@ -13,6 +13,9 @@ local S = require('syscall')
 local t, c = S.t, S.c
 local ffi = require('ffi')
 
+--debug
+local print = print
+
 module('everlooping.util')
 
 function partial(func, ...)
