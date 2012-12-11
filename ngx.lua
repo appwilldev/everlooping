@@ -9,10 +9,14 @@ local _print = print
 local os = os
 local cosocket = require('everlooping.tcppool')
 local udp = require('everlooping.udp')
+local pcre = require('everlooping.pcre')
 local write = function(s) io.stdout:write(s) end
 local ffi = require('ffi')
 
+
 module('ngx')
+
+re = pcre
 
 local gsdT = {}
 gsdT.__index = gsdT
@@ -59,10 +63,6 @@ header = {}
 socket = {
   tcp = cosocket.tcp,
   udp = udp.udp,
-}
-
-re = {
-  sub = function() end,
 }
 
 time = os.time
