@@ -64,7 +64,7 @@ function match(subject, regex, options, ctx)
     pos = ctx.pos
   end
   local re, n, size, ovector
-  if type(ctx._rectx) == 'table' then
+  if ctx and type(ctx._rectx) == 'table' then
     re = ctx._rectx.re
     n = ctx._rectx.n
     size = ctx._rectx.size
@@ -89,14 +89,14 @@ function match(subject, regex, options, ctx)
   local err
   if st == -1 then
     -- no match
-    if not ctx._rectx then
+    if not ctx or not ctx._rectx then
       L.pcre_free(re)
     end
     return nil
   elseif st < 0 then
     err = 'pcre_exec failed with error code ' .. ret
   end
-  if not ctx._rectx then
+  if not ctx or not ctx._rectx then
     L.pcre_free(re)
   elseif ctx._rectx == true then
     ctx._rectx = {
@@ -114,7 +114,7 @@ function match(subject, regex, options, ctx)
   if ctx then
     ctx.pos = ovector[1]
   end
-  if ctx._index then
+  if ctx and ctx._index then
     for i=0, n*2, 2 do
       ret[i/2] = {ovector[i]+1, ovector[i+1]}
     end
@@ -136,7 +136,7 @@ function gmatch(subject, regex, options, index)
   return function()
     while ctx.pos < #subject do
       local ret = match(subject, regex, options, ctx)
-      if not ret then
+      if not ret and type(ctx._rectx) == 'table' then
         L.pcre_free(ctx._rectx.re)
       end
       return ret
@@ -174,9 +174,11 @@ end
 function gsub(subject, regex, replace, options)
   local count = 0
   local s = subject
+  local offset = 0
   for m in gmatch(subject, regex, options, true) do
     local r = replace:gsub('%$(.)', partial(_sub_replace, subject, m))
-    s = s:sub(1, m[0][1]-1) .. r .. s:sub(m[0][2]+1)
+    s = s:sub(1, m[0][1]-1+offset) .. r .. s:sub(m[0][2]+1+offset)
+    offset = offset + #r - (m[0][2] - m[0][1] + 1)
     count = count + 1
   end
   return s, count
