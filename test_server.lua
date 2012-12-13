@@ -25,12 +25,13 @@ end
 
 local cosocket = require('everlooping.cosocket')
 local ioloop = require('everlooping.ioloop')
+local netutil = require('everlooping.netutil')
 
 local s = cosocket.tcp()
 assert(s:bind('*', 9009))
 assert(s:listen(128))
 
-S.fork()
+netutil.fork_processes(4, 10)
 
 s:accept(function(s, a)
   local mypid = S.getpid()

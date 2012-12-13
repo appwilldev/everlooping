@@ -45,7 +45,7 @@ end
 
 module('everlooping.ioloop')
 
-local IOLoop = {}
+IOLoop = {}
 local singleton
 local MAX_EVENTS = 1024
 local epoll_events = t.epoll_events(MAX_EVENTS)
