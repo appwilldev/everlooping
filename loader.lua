@@ -24,7 +24,7 @@ ngx.req = {
 local ffi = require('ffi')
 -- keep the reference in L
 local L = ffi.load('crypto', true)
-local L2 = ffi.load('ngxc', true)
+local L2 = ffi.load(os.getenv('PWD') .. '/libngxc.so', true)
 
 local cosocket = require('everlooping.tcppool')
 local ioloop = require('everlooping.ioloop')
