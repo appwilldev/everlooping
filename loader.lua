@@ -9,15 +9,24 @@ ngx.var = {
   HADDIT_CONFIG = os.getenv('PWD') .. '/conf/haddit.config',
   request_method = 'GET',
   REQUEST_URI = arg[1] or error('no target uri given'),
+  arg = arg,
 }
+
+local E = require('datautil.escape')
 
 ngx.req = {
   get_headers = function()
     return {}
   end,
   get_uri_args = function()
-    return {
-    }
+    local uri = ngx.var.REQUEST_URI
+    local s = uri:find('?', nil, true)
+    if s == nil then
+      return {}
+    else
+      local q = uri:sub(s+1)
+      return E.parseQuery(q)
+    end
   end,
 }
 
