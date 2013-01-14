@@ -195,7 +195,8 @@ function pgsqlT:query(q)
   end
 
   local res = {}
-  self._ioloop:update_handler(self._fd, 'in')
+  self._ioloop:remove_handler(self._fd)
+  self._ioloop:add_handler(self._fd, partial(_resume_me, coroutine.running()), 'in')
   while true do
     local state
     coroutine.yield()
