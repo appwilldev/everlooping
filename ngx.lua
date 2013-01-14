@@ -12,7 +12,7 @@ local udp = require('everlooping.udp')
 local pcre = require('everlooping.pcre')
 local write = function(s) io.stdout:write(s) end
 local ffi = require('ffi')
-
+local cjson = require('cjson')
 
 module('ngx')
 
@@ -58,7 +58,7 @@ ctx = setmetatable({}, {
   end
 })
 
-null = {}
+null = cjson.null -- They should be equal
 header = {}
 socket = {
   tcp = cosocket.tcp,
